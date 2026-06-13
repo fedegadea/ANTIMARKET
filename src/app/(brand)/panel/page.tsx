@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { VerifiedBadge } from '@/components/brand/VerifiedBadge'
+import { submitVerification } from './actions'
 
 export default async function PanelPage() {
   const supabase = await createClient()
@@ -13,7 +14,6 @@ export default async function PanelPage() {
   const { data: brand } = await supabase
     .from('brands').select('*').eq('user_id', user.id).single()
 
-  // No tiene marca todavía → redirect a registro
   if (!brand) redirect('/registro')
 
   const { data: verif } = await supabase
@@ -31,7 +31,6 @@ export default async function PanelPage() {
 
   return (
     <div>
-      {/* Header */}
       <div className="flex items-start justify-between mb-10">
         <div>
           <div className="flex items-center gap-3 mb-1">
@@ -47,7 +46,6 @@ export default async function PanelPage() {
         </Link>
       </div>
 
-      {/* Estado verificación */}
       <div className="border border-white/8 p-6 mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
@@ -66,16 +64,15 @@ export default async function PanelPage() {
               </p>
             )}
           </div>
-          {brand.estado_verificacion === 'rechazada' && !verif && (
-            <SubmitVerificationButton brandId={brand.id} />
-          )}
-          {!verif && brand.estado_verificacion === 'pendiente' && (
-            <p className="text-xs text-white/20">Solicitud enviada</p>
+          {brand.estado_verificacion === 'rechazada' && (
+            <form action={submitVerification}>
+              <input type="hidden" name="brandId" value={brand.id} />
+              <Button size="sm" type="submit">Solicitar verificación</Button>
+            </form>
           )}
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-white/8 mb-10">
         {[
           { label: 'Productos activos', value: productCount ?? 0 },
@@ -89,7 +86,6 @@ export default async function PanelPage() {
         ))}
       </div>
 
-      {/* Quick actions */}
       {brand.estado_verificacion === 'aprobada' ? (
         <div className="flex flex-wrap gap-3">
           <Link href="/panel/productos"><Button>+ Nuevo producto</Button></Link>
@@ -102,18 +98,5 @@ export default async function PanelPage() {
         </div>
       )}
     </div>
-  )
-}
-
-function SubmitVerificationButton({ brandId }: { brandId: string }) {
-  return (
-    <form action={async () => {
-      'use server'
-      const { createClient } = await import('@/lib/supabase/server')
-      const supabase = await createClient()
-      await supabase.from('verification_requests').upsert({ brand_id: brandId, estado: 'pendiente' })
-    }}>
-      <Button size="sm">Solicitar verificación</Button>
-    </form>
   )
 }

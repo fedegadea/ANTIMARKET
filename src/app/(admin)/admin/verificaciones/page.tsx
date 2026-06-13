@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { revalidatePath } from 'next/cache'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/Badge'
+import { approveVerification, rejectVerification } from '../actions'
 
 export default async function VerificacionesPage() {
   const supabase = await createClient()
@@ -21,29 +21,6 @@ export default async function VerificacionesPage() {
     .neq('estado', 'pendiente')
     .order('fecha_resolucion', { ascending: false })
     .limit(10)
-
-  async function approveAction(formData: FormData) {
-    'use server'
-    const brandId = formData.get('brandId') as string
-    const requestId = formData.get('requestId') as string
-    const { createClient } = await import('@/lib/supabase/server')
-    const supabase = await createClient()
-    await supabase.from('brands').update({ estado_verificacion: 'aprobada' }).eq('id', brandId)
-    await supabase.from('verification_requests').update({ estado: 'aprobada', fecha_resolucion: new Date().toISOString() }).eq('id', requestId)
-    revalidatePath('/admin/verificaciones')
-  }
-
-  async function rejectAction(formData: FormData) {
-    'use server'
-    const brandId = formData.get('brandId') as string
-    const requestId = formData.get('requestId') as string
-    const notas = formData.get('notas') as string
-    const { createClient } = await import('@/lib/supabase/server')
-    const supabase = await createClient()
-    await supabase.from('brands').update({ estado_verificacion: 'rechazada' }).eq('id', brandId)
-    await supabase.from('verification_requests').update({ estado: 'rechazada', notas_admin: notas || null, fecha_resolucion: new Date().toISOString() }).eq('id', requestId)
-    revalidatePath('/admin/verificaciones')
-  }
 
   return (
     <div>
@@ -78,16 +55,15 @@ export default async function VerificacionesPage() {
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="mt-5 pt-5 border-t border-white/8 flex items-end gap-4 flex-wrap">
-                  <form action={approveAction} className="shrink-0">
+                  <form action={approveVerification} className="shrink-0">
                     <input type="hidden" name="brandId" value={b.id} />
                     <input type="hidden" name="requestId" value={r.id} />
                     <button className="bg-white text-black text-xs font-bold px-4 py-2 hover:bg-white/90 transition-colors">
                       Aprobar
                     </button>
                   </form>
-                  <form action={rejectAction} className="flex items-end gap-2 flex-1">
+                  <form action={rejectVerification} className="flex items-end gap-2 flex-1">
                     <input type="hidden" name="brandId" value={b.id} />
                     <input type="hidden" name="requestId" value={r.id} />
                     <div className="flex-1">
@@ -106,7 +82,6 @@ export default async function VerificacionesPage() {
         </div>
       )}
 
-      {/* Resueltas recientes */}
       {resolved && resolved.length > 0 && (
         <>
           <h2 className="text-sm font-bold mb-4 text-white/40 uppercase tracking-widest">Resueltas recientemente</h2>

@@ -1,9 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { revalidatePath } from 'next/cache'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/Badge'
 import { VerifiedBadge } from '@/components/brand/VerifiedBadge'
+import { toggleDestacada, toggleSuscripcion } from '../actions'
 
 export default async function MarcasAdmin() {
   const supabase = await createClient()
@@ -12,29 +12,8 @@ export default async function MarcasAdmin() {
 
   const { data: brands } = await supabase
     .from('brands')
-    .select('*, profiles(email)')
+    .select('*')
     .order('created_at', { ascending: false })
-
-  async function toggleDestacada(formData: FormData) {
-    'use server'
-    const id = formData.get('id') as string
-    const current = formData.get('destacada') === 'true'
-    const { createClient } = await import('@/lib/supabase/server')
-    const supabase = await createClient()
-    await supabase.from('brands').update({ destacada: !current }).eq('id', id)
-    revalidatePath('/admin/marcas')
-  }
-
-  async function toggleSuscripcion(formData: FormData) {
-    'use server'
-    const id = formData.get('id') as string
-    const current = formData.get('estado') as string
-    const next = current === 'activa' ? 'suspendida' : 'activa'
-    const { createClient } = await import('@/lib/supabase/server')
-    const supabase = await createClient()
-    await supabase.from('brands').update({ suscripcion_estado: next }).eq('id', id)
-    revalidatePath('/admin/marcas')
-  }
 
   const estadoVerifColor: Record<string, any> = { aprobada: 'success', pendiente: 'warning', rechazada: 'danger' }
 
