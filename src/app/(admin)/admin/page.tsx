@@ -34,10 +34,14 @@ export default async function AdminDashboard() {
           { label: 'Pendientes de verificar', value: pendingVerif ?? 0, href: '/admin/verificaciones', highlight: (pendingVerif ?? 0) > 0 },
           { label: 'Productos activos', value: totalProducts ?? 0 },
           { label: 'Órdenes totales', value: totalOrders ?? 0 },
-        ].map(s => (
-          <div key={s.label} className={`bg-black p-6 ${s.href ? 'cursor-pointer hover:bg-white/3 transition-colors' : ''}`}
-            onClick={s.href ? () => { window.location.href = s.href! } : undefined}>
+        ].map(s => s.href ? (
+          <Link key={s.label} href={s.href} className="bg-black p-6 hover:bg-white/3 transition-colors block">
             <p className={`text-3xl font-black mb-1 tabular-nums ${s.highlight ? 'text-yellow-400' : ''}`}>{s.value}</p>
+            <p className="text-xs text-white/30 uppercase tracking-widest">{s.label}</p>
+          </Link>
+        ) : (
+          <div key={s.label} className="bg-black p-6">
+            <p className="text-3xl font-black mb-1 tabular-nums">{s.value}</p>
             <p className="text-xs text-white/30 uppercase tracking-widest">{s.label}</p>
           </div>
         ))}
