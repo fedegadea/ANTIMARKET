@@ -7,17 +7,19 @@
 
 * { box-sizing: border-box; }
 
-html {
-  background: #000;
-  color: #fff;
-  -webkit-font-smoothing: antialiased;
-}
+@layer base {
+  html {
+    background: #000;
+    color: #fff;
+    -webkit-font-smoothing: antialiased;
+  }
 
-body {
-  background: #000;
-  color: #fff;
-  font-family: var(--font-inter), system-ui, sans-serif;
-  min-height: 100vh;
+  body {
+    background: #000;
+    color: #fff;
+    font-family: var(--font-inter), system-ui, sans-serif;
+    min-height: 100vh;
+  }
 }
 
 ::selection { background: #fff; color: #000; }
