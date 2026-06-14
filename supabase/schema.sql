@@ -105,6 +105,53 @@ CREATE TABLE IF NOT EXISTS verification_requests (
 
 CREATE INDEX IF NOT EXISTS verif_estado_idx ON verification_requests(estado);
 
+-- ── 6. ITEMS (vidriera — reemplaza products en la UI) ────────
+CREATE TABLE IF NOT EXISTS items (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  brand_id       UUID REFERENCES brands(id) ON DELETE CASCADE NOT NULL,
+  nombre         TEXT NOT NULL,
+  descripcion    TEXT,
+  imagen_url     TEXT,
+  link_saliente  TEXT,
+  orden          INTEGER DEFAULT 0,
+  activo         BOOLEAN DEFAULT true,
+  created_at     TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS items_brand_idx  ON items(brand_id);
+CREATE INDEX IF NOT EXISTS items_activo_idx ON items(activo);
+
+-- ── 7. OUTBOUND CLICKS ───────────────────────────────────────
+CREATE TABLE IF NOT EXISTS outbound_clicks (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_id    UUID REFERENCES items(id) ON DELETE CASCADE,
+  brand_id   UUID REFERENCES brands(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS clicks_brand_idx ON outbound_clicks(brand_id);
+
+-- ── 8. EMAIL SUBSCRIBERS ─────────────────────────────────────
+CREATE TABLE IF NOT EXISTS email_subscribers (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email      TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ── 9. NEWS ──────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS news (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  brand_id   UUID REFERENCES brands(id) ON DELETE CASCADE NOT NULL,
+  titulo     TEXT NOT NULL,
+  contenido  TEXT,
+  imagen_url TEXT,
+  activa     BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS news_brand_idx ON news(brand_id);
+
+-- ── 10. BRANDS: nuevas columnas ──────────────────────────────
+ALTER TABLE brands ADD COLUMN IF NOT EXISTS banner_url    TEXT;
+ALTER TABLE brands ADD COLUMN IF NOT EXISTS color_acento  TEXT DEFAULT '#ffffff';
+
 -- ════════════════════════════════════════════════════════
 -- RLS
 -- ════════════════════════════════════════════════════════
@@ -167,3 +214,46 @@ CREATE POLICY "verif_owner_insert" ON verification_requests FOR INSERT WITH CHEC
   EXISTS (SELECT 1 FROM brands WHERE brands.id = verification_requests.brand_id AND brands.user_id = auth.uid())
 );
 CREATE POLICY "verif_admin"        ON verification_requests FOR ALL USING (is_admin());
+
+-- ── RLS: ITEMS ───────────────────────────────────────────────
+ALTER TABLE items ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "items_public_read" ON items FOR SELECT USING (
+  activo = true
+  AND EXISTS (
+    SELECT 1 FROM brands
+    WHERE brands.id = items.brand_id
+      AND brands.estado_verificacion = 'aprobada'
+  )
+);
+CREATE POLICY "items_owner_all" ON items FOR ALL USING (
+  EXISTS (SELECT 1 FROM brands WHERE brands.id = items.brand_id AND brands.user_id = auth.uid())
+);
+CREATE POLICY "items_admin" ON items FOR ALL USING (is_admin());
+
+-- ── RLS: OUTBOUND CLICKS ─────────────────────────────────────
+ALTER TABLE outbound_clicks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "clicks_insert_all"  ON outbound_clicks FOR INSERT WITH CHECK (true);
+CREATE POLICY "clicks_brand_read"  ON outbound_clicks FOR SELECT USING (
+  EXISTS (SELECT 1 FROM brands WHERE brands.id = outbound_clicks.brand_id AND brands.user_id = auth.uid())
+);
+CREATE POLICY "clicks_admin"       ON outbound_clicks FOR ALL USING (is_admin());
+
+-- ── RLS: EMAIL SUBSCRIBERS ───────────────────────────────────
+ALTER TABLE email_subscribers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "subscribers_insert_all" ON email_subscribers FOR INSERT WITH CHECK (true);
+CREATE POLICY "subscribers_admin"      ON email_subscribers FOR ALL USING (is_admin());
+
+-- ── RLS: NEWS ────────────────────────────────────────────────
+ALTER TABLE news ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "news_public_read" ON news FOR SELECT USING (
+  activa = true
+  AND EXISTS (
+    SELECT 1 FROM brands
+    WHERE brands.id = news.brand_id
+      AND brands.estado_verificacion = 'aprobada'
+  )
+);
+CREATE POLICY "news_owner_all" ON news FOR ALL USING (
+  EXISTS (SELECT 1 FROM brands WHERE brands.id = news.brand_id AND brands.user_id = auth.uid())
+);
+CREATE POLICY "news_admin" ON news FOR ALL USING (is_admin());

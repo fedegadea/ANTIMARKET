@@ -10,13 +10,15 @@ export default async function AdminDashboard() {
   const [
     { count: totalBrands },
     { count: pendingVerif },
-    { count: totalProducts },
-    { count: totalOrders },
+    { count: totalItems },
+    { count: totalClicks },
+    { count: totalSubscribers },
   ] = await Promise.all([
     supabase.from('brands').select('*', { count: 'exact', head: true }),
     supabase.from('verification_requests').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente'),
-    supabase.from('products').select('*', { count: 'exact', head: true }).eq('activo', true),
-    supabase.from('orders').select('*', { count: 'exact', head: true }),
+    supabase.from('items').select('*', { count: 'exact', head: true }).eq('activo', true),
+    supabase.from('outbound_clicks').select('*', { count: 'exact', head: true }),
+    supabase.from('email_subscribers').select('*', { count: 'exact', head: true }),
   ])
 
   const { data: recentBrands } = await supabase
@@ -27,16 +29,16 @@ export default async function AdminDashboard() {
     <div>
       <h1 className="text-2xl font-black tracking-tight mb-10">Dashboard</h1>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/8 mb-10">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-px bg-white/8 mb-10">
         {[
           { label: 'Marcas', value: totalBrands ?? 0, href: '/admin/marcas' },
-          { label: 'Pendientes de verificar', value: pendingVerif ?? 0, href: '/admin/verificaciones', highlight: (pendingVerif ?? 0) > 0 },
-          { label: 'Productos activos', value: totalProducts ?? 0 },
-          { label: 'Órdenes totales', value: totalOrders ?? 0 },
+          { label: 'Pendientes', value: pendingVerif ?? 0, href: '/admin/verificaciones', highlight: (pendingVerif ?? 0) > 0 },
+          { label: 'Items en vidriera', value: totalItems ?? 0 },
+          { label: 'Clicks salientes', value: totalClicks ?? 0 },
+          { label: 'Suscriptores', value: totalSubscribers ?? 0 },
         ].map(s => s.href ? (
           <Link key={s.label} href={s.href} className="bg-black p-6 hover:bg-white/3 transition-colors block">
-            <p className={`text-3xl font-black mb-1 tabular-nums ${s.highlight ? 'text-yellow-400' : ''}`}>{s.value}</p>
+            <p className={`text-3xl font-black mb-1 tabular-nums ${(s as any).highlight ? 'text-yellow-400' : ''}`}>{s.value}</p>
             <p className="text-xs text-white/30 uppercase tracking-widest">{s.label}</p>
           </Link>
         ) : (
@@ -47,7 +49,6 @@ export default async function AdminDashboard() {
         ))}
       </div>
 
-      {/* Quick links */}
       {(pendingVerif ?? 0) > 0 && (
         <div className="border border-yellow-400/20 bg-yellow-400/5 p-4 mb-8 flex items-center justify-between">
           <p className="text-sm text-yellow-400/80">{pendingVerif} marca{pendingVerif !== 1 ? 's' : ''} esperando verificación</p>
@@ -57,7 +58,6 @@ export default async function AdminDashboard() {
         </div>
       )}
 
-      {/* Recent brands */}
       <h2 className="text-sm font-bold mb-4 text-white/60 uppercase tracking-widest">Marcas recientes</h2>
       <div className="divide-y divide-white/8 border border-white/8">
         {recentBrands?.map(b => (

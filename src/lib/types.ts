@@ -1,7 +1,6 @@
 export type Rol = 'comprador' | 'marca' | 'admin'
 export type EstadoVerificacion = 'pendiente' | 'aprobada' | 'rechazada'
 export type SuscripcionEstado = 'activa' | 'inactiva' | 'trial' | 'suspendida'
-export type EstadoOrden = 'pendiente' | 'confirmada' | 'enviada' | 'entregada'
 export type EstadoVerifReq = 'pendiente' | 'aprobada' | 'rechazada'
 
 export interface Profile {
@@ -18,6 +17,8 @@ export interface Brand {
   nombre: string
   slug: string
   logo_url: string | null
+  banner_url: string | null
+  color_acento: string | null
   descripcion: string | null
   instagram: string | null
   sitio_web: string | null
@@ -28,34 +29,40 @@ export interface Brand {
   created_at: string
 }
 
-export interface Product {
+export interface Item {
   id: string
   brand_id: string
   nombre: string
   descripcion: string | null
-  precio: number
-  moneda: string
-  imagenes: string[]
-  stock: number
-  categoria: string | null
+  imagen_url: string | null
+  link_saliente: string | null
+  orden: number
   activo: boolean
   created_at: string
   brands?: Pick<Brand, 'nombre' | 'slug' | 'logo_url' | 'estado_verificacion'>
 }
 
-export interface Order {
+export interface News {
   id: string
-  product_id: string
   brand_id: string
-  comprador_id: string
-  cantidad: number
-  total: number
-  estado: EstadoOrden
-  datos_envio: Record<string, string>
-  notas: string | null
+  titulo: string
+  contenido: string | null
+  imagen_url: string | null
+  activa: boolean
   created_at: string
-  products?: Pick<Product, 'nombre' | 'imagenes'>
-  brands?: Pick<Brand, 'nombre' | 'slug'>
+}
+
+export interface EmailSubscriber {
+  id: string
+  email: string
+  created_at: string
+}
+
+export interface OutboundClick {
+  id: string
+  item_id: string | null
+  brand_id: string | null
+  created_at: string
 }
 
 export interface VerificationRequest {

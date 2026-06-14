@@ -21,8 +21,9 @@ export default async function BrandLayout({ children }: { children: React.ReactN
           </div>
           <nav className="flex items-center gap-6 text-xs text-white/40">
             <Link href="/panel" className="hover:text-white transition-colors">Dashboard</Link>
-            <Link href="/panel/productos" className="hover:text-white transition-colors">Productos</Link>
-            <Link href="/panel/ordenes" className="hover:text-white transition-colors">Órdenes</Link>
+            <Link href="/panel/local" className="hover:text-white transition-colors">Mi local</Link>
+            <Link href="/panel/items" className="hover:text-white transition-colors">Vidriera</Link>
+            <Link href="/panel/news" className="hover:text-white transition-colors">Novedades</Link>
             <form action="/auth/signout" method="post">
               <button className="hover:text-white transition-colors">Salir</button>
             </form>

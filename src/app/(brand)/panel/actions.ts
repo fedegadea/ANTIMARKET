@@ -15,10 +15,10 @@ export async function submitVerification(formData: FormData) {
   revalidatePath('/panel')
 }
 
-export async function updateOrderStatus(formData: FormData) {
-  const orderId = formData.get('orderId') as string
-  const nextEstado = formData.get('nextEstado') as string
+export async function subscribeEmail(formData: FormData) {
+  const email = (formData.get('email') as string | null)?.trim().toLowerCase()
+  if (!email) return
   const supabase = await createClient()
-  await supabase.from('orders').update({ estado: nextEstado }).eq('id', orderId)
-  revalidatePath('/panel/ordenes')
+  await supabase.from('email_subscribers').upsert({ email }, { onConflict: 'email', ignoreDuplicates: true })
+  revalidatePath('/')
 }
