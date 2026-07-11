@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Marca — Anti Market</title>
+  <meta name="description" content="Local virtual en Anti Market: catálogo, stock y precios en tiempo real.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body data-page="marca">
+  <header class="site-header">
+    <div class="container">
+      <a class="logo" href="/">Anti Market<span class="counter counter-mark"><span data-brand-count>—</span>/30</span></a>
+      <nav class="site-nav" aria-label="Principal">
+        <a href="/categoria">Explorar</a>
+        <a href="/manifiesto">Manifiesto</a>
+        <a href="/para-marcas">Para marcas</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="brand-cover" data-brand-cover></div>
+      <div class="brand-head" data-brand-head></div>
+
+      <section class="section">
+        <div class="filters">
+          <select data-filter-cat aria-label="Filtrar por categoría"></select>
+          <select data-filter-talle aria-label="Filtrar por talle"></select>
+        </div>
+        <div class="grid" data-products-grid></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <a href="/manifiesto">Manifiesto</a>
+      <a href="/como-funciona">Cómo funciona</a>
+      <a href="/para-marcas">Para marcas</a>
+      <a href="/politicas">Políticas</a>
+      <a href="https://instagram.com/antimarket" target="_blank" rel="noopener">Instagram</a>
+      <span class="sig">Anti Market — Buenos Aires, Argentina · <span class="counter-mark"><span data-brand-count>—</span>/30</span></span>
+    </div>
+  </footer>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/shopping.js"></script>
+  <script src="/js/cart.js"></script>
+  <script src="/js/agent-widget.js"></script>
+</body>
+</html>

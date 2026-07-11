@@ -1,0 +1,7 @@
+{
+  "cleanUrls": true,
+  "crons": [
+    { "path": "/api/cron/reconcile", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/settle", "schedule": "0 9 1,16 * *" }
+  ]
+}

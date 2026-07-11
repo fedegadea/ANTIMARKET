@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Explorar — Anti Market</title>
+  <meta name="description" content="Buscá entre las marcas de Anti Market: categoría, talle, marca y precio. Todo con stock real.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body data-page="categoria">
+  <header class="site-header">
+    <div class="container">
+      <a class="logo" href="/">Anti Market<span class="counter counter-mark"><span data-brand-count>—</span>/30</span></a>
+      <nav class="site-nav" aria-label="Principal">
+        <a href="/categoria">Explorar</a>
+        <a href="/manifiesto">Manifiesto</a>
+        <a href="/para-marcas">Para marcas</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <h1>Explorar</h1>
+      <section class="section">
+        <div class="filters">
+          <select data-filter-cat aria-label="Filtrar por categoría"></select>
+          <select data-filter-talle aria-label="Filtrar por talle"></select>
+          <select data-filter-marca aria-label="Filtrar por marca"></select>
+          <select data-filter-order aria-label="Ordenar">
+            <option value="">Novedades</option>
+            <option value="precio_asc">Precio: menor a mayor</option>
+            <option value="precio_desc">Precio: mayor a menor</option>
+          </select>
+          <input data-filter-min type="number" inputmode="numeric" min="0" placeholder="$ mín" aria-label="Precio mínimo">
+          <input data-filter-max type="number" inputmode="numeric" min="0" placeholder="$ máx" aria-label="Precio máximo">
+        </div>
+        <div class="grid" data-products-grid></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <a href="/manifiesto">Manifiesto</a>
+      <a href="/como-funciona">Cómo funciona</a>
+      <a href="/para-marcas">Para marcas</a>
+      <a href="/politicas">Políticas</a>
+      <a href="https://instagram.com/antimarket" target="_blank" rel="noopener">Instagram</a>
+      <span class="sig">Anti Market — Buenos Aires, Argentina · <span class="counter-mark"><span data-brand-count>—</span>/30</span></span>
+    </div>
+  </footer>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/shopping.js"></script>
+  <script src="/js/cart.js"></script>
+  <script src="/js/agent-widget.js"></script>
+</body>
+</html>

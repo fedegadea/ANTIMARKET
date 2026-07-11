@@ -1,0 +1,46 @@
+/* ============================================================
+   ANTI MARKET — design tokens (section 12). ONLY custom properties.
+   Provisional identity: gallery, not bazaar. Re-skin = edit this file.
+   ============================================================ */
+:root {
+  /* palette */
+  --bg: #FAFAF8;            /* warm paper white */
+  --ink: #141414;
+  --muted: #6B6B66;
+  --line: #E4E2DC;
+  --accent: #1E3A2F;        /* deep bottle green */
+  --accent-ink: #FFFFFF;    /* text on accent */
+  --brand-accent: var(--accent); /* injected per virtual store from brand_color */
+  --danger: #8C2F1B;
+  --promo: #8C2F1B;
+
+  /* typography */
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.75rem;
+  --text-2xl: clamp(2rem, 6vw, 3.25rem);
+  --leading-tight: 1.15;
+  --leading-body: 1.6;
+
+  /* spacing (gallery air) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2.5rem;
+  --space-6: 4rem;
+  --space-7: 6rem;
+
+  /* structure */
+  --radius: 3px;            /* rectangular buttons, minimal radius */
+  --border: 1px solid var(--line);
+  --max-width: 1200px;
+  --gutter: clamp(1rem, 4vw, 2rem);
+
+  /* motion */
+  --transition: 180ms ease;
+}

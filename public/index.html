@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anti Market — Las 30 marcas</title>
+  <meta name="description" content="Lo contrario a un mercado infinito: una selección. Treinta marcas argentinas elegidas una por una, y una asesora que te ayuda a encontrar lo tuyo.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body data-page="home">
+  <header class="site-header">
+    <div class="container">
+      <a class="logo" href="/">Anti Market<span class="counter counter-mark"><span data-brand-count>—</span>/30</span></a>
+      <nav class="site-nav" aria-label="Principal">
+        <a href="/categoria">Explorar</a>
+        <a href="/manifiesto">Manifiesto</a>
+        <a href="/para-marcas">Para marcas</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <section class="hero">
+        <span class="counter-mark">Las <span data-brand-count>—</span> de 30</span>
+        <h1>Anti Market. Las 30 marcas.</h1>
+        <p>Lo contrario a un mercado infinito: una selección. Treinta marcas argentinas elegidas una por una, y una asesora que te ayuda a encontrar lo tuyo.</p>
+      </section>
+
+      <section class="section" aria-labelledby="marcas-title">
+        <h2 id="marcas-title">Las marcas</h2>
+        <div class="grid grid--brands" data-brands-grid></div>
+      </section>
+
+      <section class="section" aria-labelledby="picks-title">
+        <h2 id="picks-title">Elegidos de la semana</h2>
+        <p class="section-sub">Curaduría nuestra, stock real de cada marca.</p>
+        <div class="grid" data-featured-grid></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <a href="/manifiesto">Manifiesto</a>
+      <a href="/como-funciona">Cómo funciona</a>
+      <a href="/para-marcas">Para marcas</a>
+      <a href="/politicas">Políticas</a>
+      <a href="https://instagram.com/antimarket" target="_blank" rel="noopener">Instagram</a>
+      <span class="sig">Anti Market — Buenos Aires, Argentina · <span class="counter-mark"><span data-brand-count>—</span>/30</span></span>
+    </div>
+  </footer>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/shopping.js"></script>
+  <script src="/js/cart.js"></script>
+  <script src="/js/agent-widget.js"></script>
+</body>
+</html>
