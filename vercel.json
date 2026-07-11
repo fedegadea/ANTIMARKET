@@ -1,4 +1,7 @@
 {
+  "framework": null,
+  "buildCommand": null,
+  "outputDirectory": "public",
   "cleanUrls": true,
   "crons": [
     { "path": "/api/cron/reconcile", "schedule": "0 8 * * *" },
