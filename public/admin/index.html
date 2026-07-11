@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — Anti Market</title>
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <style>
+    .tabs { display: flex; gap: var(--space-2); border-bottom: var(--border); margin-block: var(--space-4); flex-wrap: wrap; }
+    .tabs button { padding: 0.6rem 1rem; font-size: var(--text-sm); color: var(--muted); border-bottom: 2px solid transparent; }
+    .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+    table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); background: #fff; border: var(--border); }
+    th, td { text-align: left; padding: 0.55rem 0.7rem; border-bottom: var(--border); vertical-align: top; }
+    th { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 500; }
+    .table-wrap { overflow-x: auto; margin-bottom: var(--space-4); }
+    .badge { font-size: var(--text-xs); border: var(--border); border-radius: 999px; padding: 0.1rem 0.6rem; white-space: nowrap; }
+    .badge--ok { color: var(--accent); border-color: var(--accent); }
+    .badge--bad { color: var(--danger); border-color: var(--danger); }
+    .cap { font-family: var(--font-display); font-size: var(--text-xl); margin-bottom: var(--space-3); }
+    .row-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .edit-box { border: var(--border); background: #fff; border-radius: var(--radius); padding: var(--space-3); margin: var(--space-2) 0 var(--space-4); }
+    .edit-box .form-grid { max-width: 640px; }
+    .conv { border: var(--border); background: #fff; border-radius: var(--radius); padding: var(--space-3); margin-bottom: var(--space-3); }
+    .conv .log { max-height: 240px; overflow-y: auto; font-size: var(--text-sm); display: grid; gap: 0.4rem; margin-block: var(--space-2); }
+    .conv .log .u { color: var(--ink); }
+    .conv .log .a { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="logo" href="/">Anti Market<span class="counter counter-mark">admin</span></a>
+      <nav class="site-nav"><button data-logout hidden>Salir</button></nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <section data-login hidden>
+        <h1>Admin</h1>
+        <form class="form-grid" style="margin-top: var(--space-3)">
+          <label>Email
+            <input name="email" type="email" required autocomplete="email">
+          </label>
+          <button class="btn" type="submit">Mandame el link</button>
+          <p data-login-msg role="status"></p>
+        </form>
+      </section>
+
+      <section data-app hidden>
+        <div class="cap counter-mark"><span data-active>—</span>/30</div>
+        <div class="tabs" role="tablist">
+          <button role="tab" aria-selected="true" data-tab="aplicaciones">Aplicaciones</button>
+          <button role="tab" aria-selected="false" data-tab="tiendas">Tiendas</button>
+          <button role="tab" aria-selected="false" data-tab="liquidaciones">Liquidaciones</button>
+          <button role="tab" aria-selected="false" data-tab="conversaciones">Conversaciones</button>
+          <button role="tab" aria-selected="false" data-tab="salud">Salud</button>
+        </div>
+        <div data-view></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script type="module" src="/js/admin.js"></script>
+</body>
+</html>

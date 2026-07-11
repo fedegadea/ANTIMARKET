@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Panel de marca — Anti Market</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <style>
+    .tabs { display: flex; gap: var(--space-2); border-bottom: var(--border); margin-block: var(--space-4); flex-wrap: wrap; }
+    .tabs button { padding: 0.6rem 1rem; font-size: var(--text-sm); color: var(--muted); border-bottom: 2px solid transparent; }
+    .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+    .kpis { display: grid; gap: var(--space-3); grid-template-columns: repeat(2, 1fr); margin-bottom: var(--space-4); }
+    @media (min-width: 700px) { .kpis { grid-template-columns: repeat(4, 1fr); } }
+    .kpi { border: var(--border); border-radius: var(--radius); background: #fff; padding: var(--space-3); }
+    .kpi .v { font-family: var(--font-display); font-size: var(--text-xl); font-variant-numeric: tabular-nums; }
+    .kpi .l { font-size: var(--text-xs); color: var(--muted); }
+    .headline { font-family: var(--font-display); font-size: var(--text-lg); margin-bottom: var(--space-3); }
+    table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); background: #fff; border: var(--border); }
+    th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: var(--border); }
+    th { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 500; }
+    td.num { font-variant-numeric: tabular-nums; }
+    .table-wrap { overflow-x: auto; }
+    .badge { font-size: var(--text-xs); border: var(--border); border-radius: 999px; padding: 0.1rem 0.6rem; }
+    .badge--paid { color: var(--accent); border-color: var(--accent); }
+    .badge--overdue { color: var(--danger); border-color: var(--danger); }
+    .chart-box { border: var(--border); border-radius: var(--radius); background: #fff; padding: var(--space-3); margin-bottom: var(--space-4); }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="logo" href="/">Anti Market<span class="counter counter-mark">panel</span></a>
+      <nav class="site-nav"><button data-logout hidden>Salir</button></nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <section data-login hidden>
+        <h1>Panel de marca</h1>
+        <p class="muted" style="margin-block: var(--space-3)">Entrá con el email de contacto de tu tienda. Te mandamos un link, sin contraseñas.</p>
+        <form class="form-grid">
+          <label>Email
+            <input name="email" type="email" required autocomplete="email">
+          </label>
+          <button class="btn" type="submit">Mandame el link</button>
+          <p data-login-msg role="status"></p>
+        </form>
+      </section>
+
+      <section data-app hidden>
+        <h1 data-store-name></h1>
+        <div class="tabs" role="tablist">
+          <button role="tab" aria-selected="true" data-tab="resumen">Resumen</button>
+          <button role="tab" aria-selected="false" data-tab="ordenes">Órdenes atribuidas</button>
+          <button role="tab" aria-selected="false" data-tab="liquidaciones">Liquidaciones</button>
+        </div>
+        <div data-view></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script type="module" src="/js/panel.js"></script>
+</body>
+</html>
