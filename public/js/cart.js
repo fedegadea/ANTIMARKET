@@ -99,7 +99,7 @@
   // Step 2: minimal buyer info (draft orders need it; email doubles as attribution evidence)
   function renderBuyerForm() {
     body.replaceChildren(
-      el('p', { class: 'handoff-note', text: 'Pagás en la tienda de cada marca, con sus medios de pago y su envío. Dejanos tu nombre y email para armar tu pedido.' }),
+      el('p', { class: 'handoff-note', text: 'Te guiamos marca por marca para completar el pago, con los medios y el envío de cada una. Dejanos tu nombre y email para armar el pedido.' }),
       el('form', { class: 'form-grid' }, [
         el('label', {}, ['Nombre y apellido', el('input', { name: 'name', required: true, autocomplete: 'name' })]),
         el('label', {}, ['Email', el('input', { name: 'email', type: 'email', required: true, autocomplete: 'email' })]),
@@ -122,49 +122,16 @@
             items: load().map(function (i) { return { variant_id: i.variant_id, qty: i.qty }; }),
           },
         });
-        renderHandoff(res);
+        // order registered server-side: hand off to the guided /pedido flow.
+        // The local cart is now the order — clear it so it can't drift.
+        localStorage.removeItem(KEY);
+        paintFab();
+        window.location.href = '/pedido?token=' + encodeURIComponent(res.token);
       } catch (err) {
         btn.disabled = false;
         btn.textContent = 'Armar mi pedido';
         toast('No pudimos armar el pedido. Probá de nuevo.');
       }
-    });
-  }
-
-  // Step 3: handoff screen — one button per brand, "ya fuiste" state on return
-  function renderHandoff(res) {
-    body.replaceChildren(
-      el('h3', { text: 'Tu selección ya está lista.' }),
-      el('p', { class: 'handoff-note', text: 'Tu pedido se completa en la tienda de cada marca.' + (res.multi_store ? ' Vas a recibir un paquete por marca.' : '') }),
-    );
-    res.groups.forEach(function (group) {
-      const visited = el('span', { class: 'visited', text: '' });
-      const goBtn = el('a', {
-        class: 'btn btn--sm',
-        href: group.checkout_url,
-        target: '_blank',
-        rel: 'noopener',
-        text: 'Pagar en ' + group.store_name,
-      });
-      goBtn.addEventListener('click', function () {
-        visited.textContent = '✓ ya fuiste';
-        // items handed off to this brand leave the local cart
-        const handed = new Set(group.items.map(function (i) { return i.variant_id; }));
-        save(load().filter(function (i) { return !handed.has(i.variant_id); }));
-      });
-      body.appendChild(el('div', { class: 'handoff-store' }, [
-        el('div', { class: 'row' }, [
-          el('div', {}, [
-            el('strong', { text: group.store_name }),
-            el('div', { class: 'muted', style: 'font-size: var(--text-xs)', text: group.items.length + ' producto' + (group.items.length > 1 ? 's' : '') + ' · ' + money(group.subtotal) }),
-          ]),
-          el('div', {}, [goBtn]),
-        ]),
-        el('div', {}, [visited]),
-        group.mode === 'product_link'
-          ? el('p', { class: 'muted', style: 'font-size: var(--text-xs); margin-top: 0.5rem', text: 'Te llevamos a la tienda de la marca para terminar ahí.' })
-          : null,
-      ]));
     });
   }
 

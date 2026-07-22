@@ -15,7 +15,7 @@
 
 ## 0. Visión
 Plataforma de comercio curado para marcas independientes argentinas premium.
-No es un marketplace: cupo cerrado de **30 marcas**, dos interfaces sobre un motor:
+No es un marketplace: cupo cerrado y limitado (selección curada, sin número fijo), dos interfaces sobre un motor:
 1. **El Shopping** — local virtual por marca generado desde su Tienda Nube (catálogo,
    stock y precios en tiempo real), navegación cross-marca, compra derivada al
    checkout de cada marca (Fase A).
@@ -25,7 +25,7 @@ No es un marketplace: cupo cerrado de **30 marcas**, dos interfaces sobre un mot
 
 Ventana de atribución: 7 días. Liquidación mensual (quincenal si el devengado supera
 umbral por tienda, default $300.000). Idioma: producto en rioplatense (voseo);
-código/comentarios/variables en inglés. Bajada: **"Anti Market. Las 30 marcas."**
+código/comentarios/variables en inglés. Bajada: **"Anti Market. Una selección."**
 
 ## 1. Reglas de oro (no negociables)
 1. Stack fijo: HTML/CSS/JS vanilla (sin frameworks de UI), Vercel serverless (Node),
@@ -116,7 +116,7 @@ el código queda en el touch.
 - `/panel` (marcas, OTP por email contra `contact_email`): resumen del mes por canal
   con "Anti Market te vendió $X este mes" + gráfico SVG nativo; órdenes atribuidas
   verificables contra su TN; liquidaciones con CSV y datos de pago (alias).
-- `/admin` (OTP + allowlist `ADMIN_EMAILS`): aplicaciones (cupo visible {activas}/30,
+- `/admin` (OTP + allowlist `ADMIN_EMAILS`): aplicaciones (marcas activas visibles,
   invitar por email con link de instalación, rechazar, waitlist), tiendas (aprobar/
   suspender/branding/mapeo/featured/branding_approved), liquidaciones (marcar pagada,
   CSV, overdue automático visible; suspensión por mora manual), conversaciones
@@ -130,7 +130,7 @@ el código queda en el touch.
 Copy institucional completo en las páginas (manifiesto, cómo funciona, para marcas
 con formulario, políticas con nota legal para revisión de abogado). Actualizado a 7%.
 Diseño: galería no bazar; tokens en `css/tokens.css`; paleta papel/tinta/verde botella;
-Fraunces display + sans de sistema; firma visual "—/30"; cards con borde fino;
+Fraunces display + sans de sistema; firma visual sobria; cards con borde fino;
 motion 150-200ms con `prefers-reduced-motion`.
 
 ## 13-14. Seguridad y envs

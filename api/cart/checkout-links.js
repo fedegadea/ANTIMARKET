@@ -1,17 +1,42 @@
-// POST /api/cart/checkout-links — groups the local cart by store and returns
-// one checkout handoff per brand (Fase A: payment happens in each brand's store).
+// /api/cart/checkout-links — the Anti Market order (Combo A: guided cross-brand checkout).
 //
-// DOCS: TN has no documented Shopify-style cart permalink (option a in spec 4.4).
+//   POST  → build the AM order: one segment per brand, each a TN draft order
+//           (checkout_url). Persists an order_group + segments and returns a
+//           public_token that drives the guided /pedido flow.
+//   GET ?token=… → current state of an order group (which brands are paid),
+//           polled by the guided checkout page.
+//
 // DOCS: https://tiendanube.github.io/api-documentation/resources/draft-order
-//   Draft orders return checkout_url -> that's our primary mechanism (option b).
-// DECISIÓN: the handoff screen asks for name+email once (required by draft orders);
-//   this doubles as strong email evidence for attribution. If the draft order
-//   fails for a store, we fall back to direct product links (option c).
+//   Draft order returns checkout_url; the paid order keeps the SAME id, so a
+//   segment binds to its payment by draft_order_id == tn_order_id (see webhook).
+// DECISIÓN: name+email asked once (draft orders require it) and doubles as strong
+//   email evidence for attribution. If a store's draft order fails, that segment
+//   falls back to a direct product link.
 //
-// Body: { anon_id, buyer: { name, email, phone? }, items: [{ variant_id, qty }] }
+// POST body: { anon_id, buyer: { name, email, phone? }, items: [{ variant_id, qty }] }
+import { randomBytes } from 'node:crypto';
 import { db } from '../../lib/db.js';
 import { json, err, readJson, str, isEmail, isUuid, posInt, normalizePhone } from '../../lib/http.js';
 import { createDraftOrder } from '../../lib/tn.js';
+
+function newToken() {
+  return randomBytes(24).toString('base64url'); // 32 urlsafe chars, unguessable
+}
+
+// Shape a segment row for the client (never leaks tn ids or tokens).
+function publicSegment(seg) {
+  return {
+    store_id: seg.store_id,
+    store_name: seg.store_name,
+    store_logo: seg.store_logo || null,
+    position: seg.position,
+    items: seg.items,
+    subtotal: seg.subtotal,
+    checkout_url: seg.checkout_url,
+    mode: seg.mode,
+    payment_status: seg.payment_status,
+  };
+}
 
 export async function POST(request) {
   const body = await readJson(request);
@@ -63,7 +88,7 @@ export async function POST(request) {
     }
   }
 
-  // group by store
+  // group by store, preserving cart order (Map keeps insertion order = pay order)
   const byStore = new Map();
   for (const item of items) {
     const v = (variants || []).find((x) => x.id === item.variant_id);
@@ -78,16 +103,35 @@ export async function POST(request) {
       name: v.products.name,
       product_slug: v.products.slug,
       tn_handle: v.products.tn_handle,
-      size: v.size,
-      color: v.color,
+      variant_label: [v.size, v.color].filter(Boolean).join(' · ') || 'Único',
       unit_price: Number(v.promotional_price ?? v.price),
     });
   }
   if (!byStore.size) return err(400, 'no available items');
 
-  const groups = [];
+  // create the umbrella order group up front (so segments can reference it)
+  const token = newToken();
+  const orderTotal = Array.from(byStore.values()).reduce(
+    (acc, g) => acc + g.items.reduce((s, i) => s + i.unit_price * i.qty, 0), 0);
+  const { data: group, error: gErr } = await supa.from('order_groups').insert({
+    public_token: token,
+    anon_id: anonId,
+    session_id: session?.id || null,
+    customer_id: customerId,
+    buyer_name: buyerName,
+    buyer_email: buyerEmail,
+    buyer_phone: buyerPhone,
+    status: 'open',
+    total: Math.round(orderTotal * 100) / 100,
+    store_count: byStore.size,
+  }).select('id, public_token').single();
+  if (gErr) return err(500, 'could not create order');
+
+  const segments = [];
+  let position = 0;
   for (const { store, items: storeItems } of byStore.values()) {
-    const subtotal = storeItems.reduce((acc, i) => acc + i.unit_price * i.qty, 0);
+    position += 1;
+    const subtotal = Math.round(storeItems.reduce((acc, i) => acc + i.unit_price * i.qty, 0) * 100) / 100;
 
     // touch FIRST — checkout_redirect is top-priority attribution evidence
     if (session) {
@@ -101,6 +145,7 @@ export async function POST(request) {
     }
 
     let checkoutUrl = null;
+    let draftOrderId = null;
     let mode = 'draft_order';
     try {
       const [firstName, ...rest] = buyerName.split(/\s+/);
@@ -112,28 +157,96 @@ export async function POST(request) {
         contactPhone: buyerPhone,
       });
       checkoutUrl = draft?.checkout_url || null;
+      draftOrderId = draft?.id ? Number(draft.id) : null; // == future paid order id
     } catch (e) {
       console.warn(`[checkout-links] draft order failed for ${store.slug}: ${e.message}`);
     }
     if (!checkoutUrl) {
-      // fallback (c): direct link to the first product in the brand's own store
+      // fallback: direct link to the first product in the brand's own store
       mode = 'product_link';
+      draftOrderId = null;
       const first = storeItems[0];
       checkoutUrl = first.tn_handle
         ? `${store.tn_url.replace(/\/$/, '')}/productos/${first.tn_handle}/`
         : store.tn_url;
     }
 
-    groups.push({
+    // items snapshot for the segment (public-safe: no tn ids)
+    const itemsSnapshot = storeItems.map((i) => ({
+      variant_id: i.variant_id,
+      name: i.name,
+      variant_label: i.variant_label,
+      qty: i.qty,
+      unit_price: i.unit_price,
+    }));
+
+    await supa.from('order_group_segments').insert({
+      group_id: group.id,
       store_id: store.id,
-      store_name: store.name,
-      store_logo: store.logo_url,
-      items: storeItems.map(({ tn_variant_id, tn_handle, ...pub }) => pub),
-      subtotal: Math.round(subtotal * 100) / 100,
-      checkout_url: checkoutUrl,
+      position,
+      items: itemsSnapshot,
+      subtotal,
       mode,
+      draft_order_id: draftOrderId,
+      checkout_url: checkoutUrl,
+      payment_status: 'pending',
     });
+
+    segments.push(publicSegment({
+      store_id: store.id, store_name: store.name, store_logo: store.logo_url,
+      position, items: itemsSnapshot, subtotal, checkout_url: checkoutUrl,
+      mode, payment_status: 'pending',
+    }));
   }
 
-  return json({ groups, multi_store: groups.length > 1 });
+  return json({
+    token: group.public_token,
+    total: Math.round(orderTotal * 100) / 100,
+    multi_store: segments.length > 1,
+    segments,
+  });
+}
+
+// GET ?token=… — poll the state of an order group (guided checkout page).
+export async function GET(request) {
+  const token = str(new URL(request.url).searchParams.get('token'), { max: 64 });
+  if (!token) return err(400, 'token required');
+
+  const supa = db();
+  const { data: group } = await supa
+    .from('order_groups')
+    .select('id, public_token, buyer_name, buyer_email, status, total, store_count, created_at')
+    .eq('public_token', token)
+    .maybeSingle();
+  if (!group) return err(404, 'order not found');
+
+  const { data: rows } = await supa
+    .from('order_group_segments')
+    .select('store_id, position, items, subtotal, mode, checkout_url, payment_status, paid_at, stores(name, logo_url)')
+    .eq('group_id', group.id)
+    .order('position', { ascending: true });
+
+  const segments = (rows || []).map((s) => publicSegment({
+    store_id: s.store_id,
+    store_name: s.stores?.name || 'Marca',
+    store_logo: s.stores?.logo_url,
+    position: s.position,
+    items: s.items,
+    subtotal: Number(s.subtotal),
+    checkout_url: s.checkout_url,
+    mode: s.mode,
+    payment_status: s.payment_status,
+  }));
+
+  const paid = segments.filter((s) => s.payment_status === 'paid').length;
+  return json({
+    token: group.public_token,
+    buyer_name: group.buyer_name,
+    status: group.status,
+    total: Number(group.total),
+    paid_count: paid,
+    store_count: group.store_count,
+    multi_store: group.store_count > 1,
+    segments,
+  });
 }

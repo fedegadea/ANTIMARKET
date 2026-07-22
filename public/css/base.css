@@ -106,7 +106,7 @@ main { flex: 1; padding-block: var(--space-5) var(--space-7); }
 .site-footer .container { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-4); align-items: center; }
 .site-footer .sig { margin-left: auto; font-variant-numeric: tabular-nums; }
 
-/* the "/30" signature */
+/* brand signature */
 .counter-mark {
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;

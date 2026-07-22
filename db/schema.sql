@@ -166,6 +166,52 @@ create table if not exists attributions (
   created_at timestamptz not null default now()
 );
 
+-- ============ ANTI MARKET ORDER (Combo A: guided cross-brand checkout) ============
+-- The "AM order" is the umbrella a shopper confirms in Anti Market. It fans out
+-- into one segment per brand; each segment is a TN draft order whose checkout is
+-- completed in that brand's store. TN preserves the id across draft->paid order,
+-- so a segment binds to its paid order by draft_order_id == tn_order_id.
+create table if not exists order_groups (
+  id uuid primary key default gen_random_uuid(),
+  public_token text unique not null,               -- unguessable handle for the /pedido URL (no auth)
+  anon_id text,
+  session_id uuid references sessions(id),
+  customer_id uuid references customers(id),
+  buyer_name text,
+  buyer_email text,
+  buyer_phone text,
+  status text not null default 'open'
+    check (status in ('open','partial','complete','cancelled')),
+  total numeric(12,2) not null default 0,
+  store_count int not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists idx_order_groups_token on order_groups(public_token);
+create index if not exists idx_order_groups_session on order_groups(session_id, created_at desc);
+
+create table if not exists order_group_segments (
+  id uuid primary key default gen_random_uuid(),
+  group_id uuid not null references order_groups(id) on delete cascade,
+  store_id uuid not null references stores(id),
+  position int not null,                           -- 1..N pay order in the guided flow
+  items jsonb not null,                            -- [{variant_id, name, variant_label, qty, unit_price}]
+  subtotal numeric(12,2) not null default 0,
+  mode text not null default 'draft_order'
+    check (mode in ('draft_order','product_link')),
+  draft_order_id bigint,                           -- TN draft order id == future paid order id
+  checkout_url text,
+  tn_order_id bigint,                              -- set when paid (equals draft_order_id)
+  payment_status text not null default 'pending'
+    check (payment_status in ('pending','paid','cancelled')),
+  paid_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (group_id, store_id)
+);
+create index if not exists idx_segments_group on order_group_segments(group_id, position);
+create index if not exists idx_segments_draft on order_group_segments(draft_order_id) where draft_order_id is not null;
+
 -- ============ SETTLEMENTS ============
 create table if not exists settlements (
   id uuid primary key default gen_random_uuid(),
@@ -240,6 +286,8 @@ alter table customers enable row level security;
 alter table sessions enable row level security;
 alter table touches enable row level security;
 alter table orders enable row level security;
+alter table order_groups enable row level security;          -- deny-by-default: only service role (our API) touches these
+alter table order_group_segments enable row level security;
 alter table attributions enable row level security;
 alter table settlements enable row level security;
 alter table brand_applications enable row level security;
