@@ -88,6 +88,29 @@ export async function POST(request) {
     }
   }
 
+  // stored address (if the customer filled it in their profile) → prefilled checkout.
+  // Fetched separately + tolerantly so checkout keeps working even before the
+  // address columns migration has been run.
+  let shippingAddress = null;
+  let identification = null;
+  if (customer) {
+    const { data: addr } = await supa
+      .from('customers')
+      .select('identification, address_street, address_number, address_floor, address_locality, address_city, address_province, address_zipcode, address_country')
+      .eq('id', customer.id)
+      .maybeSingle();
+    if (addr) {
+      identification = addr.identification || null;
+      if (addr.address_street) {
+        shippingAddress = {
+          street: addr.address_street, number: addr.address_number, floor: addr.address_floor,
+          locality: addr.address_locality, city: addr.address_city, province: addr.address_province,
+          zipcode: addr.address_zipcode, country: addr.address_country,
+        };
+      }
+    }
+  }
+
   // group by store, preserving cart order (Map keeps insertion order = pay order)
   const byStore = new Map();
   for (const item of items) {
@@ -147,19 +170,31 @@ export async function POST(request) {
     let checkoutUrl = null;
     let draftOrderId = null;
     let mode = 'draft_order';
+    const [firstName, ...rest] = buyerName.split(/\s+/);
+    const draftBase = {
+      items: storeItems,
+      contactName: firstName,
+      contactLastname: rest.join(' ') || '-',
+      contactEmail: buyerEmail,
+      contactPhone: buyerPhone,
+    };
     try {
-      const [firstName, ...rest] = buyerName.split(/\s+/);
-      const draft = await createDraftOrder(store, {
-        items: storeItems,
-        contactName: firstName,
-        contactLastname: rest.join(' ') || '-',
-        contactEmail: buyerEmail,
-        contactPhone: buyerPhone,
-      });
+      // try WITH the prefilled address/identification first
+      const draft = await createDraftOrder(store, { ...draftBase, identification, shippingAddress });
       checkoutUrl = draft?.checkout_url || null;
       draftOrderId = draft?.id ? Number(draft.id) : null; // == future paid order id
     } catch (e) {
-      console.warn(`[checkout-links] draft order failed for ${store.slug}: ${e.message}`);
+      console.warn(`[checkout-links] draft with address failed for ${store.slug}: ${e.message}`);
+      // the address may have been rejected — retry clean so checkout never breaks
+      if (shippingAddress || identification) {
+        try {
+          const draft = await createDraftOrder(store, draftBase);
+          checkoutUrl = draft?.checkout_url || null;
+          draftOrderId = draft?.id ? Number(draft.id) : null;
+        } catch (e2) {
+          console.warn(`[checkout-links] draft retry failed for ${store.slug}: ${e2.message}`);
+        }
+      }
     }
     if (!checkoutUrl) {
       // fallback: direct link to the first product in the brand's own store

@@ -30,6 +30,26 @@
     .badge--paid { color: var(--accent); border-color: var(--accent); }
     .badge--overdue { color: var(--danger); border-color: var(--danger); }
     .chart-box { border: var(--border); border-radius: var(--radius); background: #fff; padding: var(--space-3); margin-bottom: var(--space-4); }
+    .edit-box { border: var(--border); border-radius: var(--radius); background: #fff; padding: var(--space-3); margin-top: var(--space-3); }
+    .edit-box input, .edit-box textarea, .edit-box select { border: var(--border); border-radius: var(--radius); padding: 0.4rem 0.5rem; font: inherit; }
+    .linklike { color: var(--accent); text-decoration: underline; cursor: pointer; background: none; border: 0; font: inherit; padding: 0; }
+    .seg { display: inline-flex; border: var(--border); border-radius: var(--radius); overflow: hidden; }
+    .seg-btn { padding: 0.5rem 1rem; font-size: var(--text-sm); background: #fff; color: var(--muted); border: 0; cursor: pointer; }
+    .seg-btn.is-active { background: var(--accent); color: var(--accent-ink); }
+    .prod-picker { max-height: 260px; overflow-y: auto; border: var(--border); border-radius: var(--radius); background: #fff; padding: 0.4rem; margin-bottom: var(--space-2); }
+    .prod-opt { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.5rem; font-size: var(--text-sm); border-radius: var(--radius); cursor: pointer; }
+    .prod-opt:hover { background: var(--bg); }
+    .prod-opt input { width: auto; }
+    .chart-row { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); padding: 0.5rem 0; border-bottom: var(--border); font-size: var(--text-sm); }
+    h4 { font-size: var(--text-sm); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+    .outlet-list { display: grid; gap: 0.3rem; }
+    .outlet-row { display: flex; align-items: center; gap: var(--space-2); padding: 0.5rem; border: var(--border); border-radius: var(--radius); background: #fff; cursor: pointer; }
+    .outlet-row input { width: auto; }
+    .outlet-thumb { width: 40px; height: 50px; object-fit: cover; border-radius: 4px; background: #F1F0EC; flex: none; }
+    .outlet-name { flex: 1; font-size: var(--text-sm); }
+    .outlet-price { display: flex; gap: 0.4rem; align-items: baseline; font-size: var(--text-sm); white-space: nowrap; }
+    .outlet-price .promo { color: var(--accent); }
+    .outlet-price .was { color: var(--muted); text-decoration: line-through; font-size: var(--text-xs); }
   </style>
 </head>
 <body>
@@ -59,6 +79,8 @@
         <div class="tabs" role="tablist">
           <button role="tab" aria-selected="true" data-tab="resumen">Resumen</button>
           <button role="tab" aria-selected="false" data-tab="ordenes">Órdenes atribuidas</button>
+          <button role="tab" aria-selected="false" data-tab="talles">Tablas de talle</button>
+          <button role="tab" aria-selected="false" data-tab="outlet">Outlet</button>
           <button role="tab" aria-selected="false" data-tab="liquidaciones">Liquidaciones</button>
         </div>
         <div data-view></div>

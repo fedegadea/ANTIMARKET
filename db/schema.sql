@@ -59,6 +59,7 @@ create table if not exists products (
   tags text[],
   published boolean not null default true,
   featured boolean not null default false,       -- "Elegidos de la semana" (admin-curated)
+  outlet boolean not null default false,         -- brand-curated: shown in the Outlet section
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (store_id, tn_product_id)
@@ -103,6 +104,69 @@ create table if not exists customers (
   opt_in_marketing boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+-- Link a customer to their Supabase Auth account (email+password login).
+alter table customers add column if not exists auth_user_id uuid unique;
+
+-- Customer shipping address (Tienda Nube format) — prefilled into each brand's
+-- draft-order checkout so the buyer loads it once (see api/cart/checkout-links).
+alter table customers add column if not exists identification   text;
+alter table customers add column if not exists address_street   text;
+alter table customers add column if not exists address_number   text;
+alter table customers add column if not exists address_floor     text;
+alter table customers add column if not exists address_locality  text;
+alter table customers add column if not exists address_city      text;
+alter table customers add column if not exists address_province  text;
+alter table customers add column if not exists address_zipcode   text;
+alter table customers add column if not exists address_country   text default 'AR';
+
+-- Favorites (the heart on each product) and favorite brands. Work anonymously
+-- by anon_id and get merged into customer_id on login (see /api/account/sync).
+create table if not exists favorites (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid references customers(id) on delete cascade,
+  anon_id text,
+  product_id uuid not null references products(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+create unique index if not exists favorites_customer_uidx on favorites(customer_id, product_id) where customer_id is not null;
+create unique index if not exists favorites_anon_uidx on favorites(anon_id, product_id) where anon_id is not null and customer_id is null;
+create index if not exists favorites_customer_idx on favorites(customer_id);
+
+create table if not exists favorite_stores (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid references customers(id) on delete cascade,
+  anon_id text,
+  store_id uuid not null references stores(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+create unique index if not exists fav_stores_customer_uidx on favorite_stores(customer_id, store_id) where customer_id is not null;
+create unique index if not exists fav_stores_anon_uidx on favorite_stores(anon_id, store_id) where anon_id is not null and customer_id is null;
+
+-- Size charts per brand + internal category. One table per (store, category);
+-- products inherit the chart matching their category (see api/catalog/product).
+create table if not exists size_charts (
+  id uuid primary key default gen_random_uuid(),
+  store_id uuid not null references stores(id) on delete cascade,
+  category text,                                   -- set for category-scoped charts; null for product-scoped
+  scope text not null default 'category',          -- 'category' | 'products'
+  title text,
+  columns text[] not null default '{}',
+  rows jsonb not null default '[]',
+  note text,
+  updated_at timestamptz not null default now(),
+  unique (store_id, category)                       -- nulls are distinct, so many product charts per store are fine
+);
+create index if not exists size_charts_store_idx on size_charts(store_id);
+
+-- assignment of a product-scoped chart to specific products
+create table if not exists size_chart_products (
+  chart_id uuid not null references size_charts(id) on delete cascade,
+  product_id uuid not null references products(id) on delete cascade,
+  primary key (chart_id, product_id)
+);
+create unique index if not exists size_chart_products_product_uidx on size_chart_products(product_id);
+create index if not exists size_chart_products_chart_idx on size_chart_products(chart_id);
 
 create table if not exists sessions (
   id uuid primary key default gen_random_uuid(),
@@ -283,6 +347,10 @@ alter table products enable row level security;
 alter table variants enable row level security;
 alter table product_images enable row level security;
 alter table customers enable row level security;
+alter table favorites enable row level security;          -- deny-by-default: only /api/account (service role)
+alter table favorite_stores enable row level security;
+alter table size_charts enable row level security;        -- served/edited only via service-role routes
+alter table size_chart_products enable row level security;
 alter table sessions enable row level security;
 alter table touches enable row level security;
 alter table orders enable row level security;
@@ -349,7 +417,8 @@ select
   (select min(v.price) from variants v where v.product_id = p.id and v.stock > 0) as price,
   (select min(v.promotional_price) from variants v
      where v.product_id = p.id and v.stock > 0 and v.promotional_price is not null) as promotional_price,
-  (select array_agg(distinct v.size) from variants v where v.product_id = p.id and v.stock > 0) as sizes
+  (select array_agg(distinct v.size) from variants v where v.product_id = p.id and v.stock > 0) as sizes,
+  p.outlet
 from products p
 join stores s on s.id = p.store_id
 where p.published

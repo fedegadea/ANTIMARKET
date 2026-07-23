@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Anti Market — Una selección, no un mercado</title>
-  <meta name="description" content="Lo contrario a un mercado infinito: una selección. Marcas argentinas elegidas una por una, y una asesora que te ayuda a encontrar lo tuyo.">
+  <title>Outlet — Anti Market</title>
+  <meta name="description" content="Prendas seleccionadas en descuento, elegidas por cada marca. Stock real, precios rebajados.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
@@ -21,7 +21,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Anti Market">
 </head>
-<body data-page="home">
+<body data-page="outlet">
   <header class="site-header">
     <div class="container">
       <a class="logo" href="/">Anti Market</a>
@@ -36,27 +36,14 @@
 
   <main>
     <div class="container">
-      <section class="hero">
-        <span class="counter-mark">Selección limitada</span>
-        <h1>Anti Market. Una selección.</h1>
-        <p>Lo contrario a un mercado infinito: una selección. Marcas argentinas elegidas una por una, y una asesora que te ayuda a encontrar lo tuyo.</p>
+      <section class="hero hero--outlet">
+        <span class="counter-mark">Precios rebajados</span>
+        <h1>Outlet</h1>
+        <p>Una selección de prendas en descuento, elegidas por cada marca. Stock real, mientras dure.</p>
       </section>
 
-      <section class="section" data-foryou hidden aria-labelledby="foryou-title">
-        <h2 id="foryou-title" data-foryou-title>Nuestra selección para vos</h2>
-        <p class="section-sub" data-foryou-sub>Elegidos pensando en vos.</p>
-        <div class="grid" data-foryou-grid></div>
-      </section>
-
-      <section class="section" aria-labelledby="marcas-title">
-        <h2 id="marcas-title">Las marcas</h2>
-        <div class="grid grid--brands" data-brands-grid></div>
-      </section>
-
-      <section class="section" aria-labelledby="picks-title">
-        <h2 id="picks-title">Elegidos de la semana</h2>
-        <p class="section-sub">Curaduría nuestra, stock real de cada marca.</p>
-        <div class="grid" data-featured-grid></div>
+      <section class="section">
+        <div class="grid" data-products-grid></div>
       </section>
     </div>
   </main>
@@ -75,7 +62,6 @@
 
   <script src="/js/api.js"></script>
   <script src="/js/account.js"></script>
-  <script src="/js/tour.js"></script>
   <script src="/js/shopping.js"></script>
   <script src="/js/cart.js"></script>
   <script src="/js/agent-widget.js"></script>

@@ -26,7 +26,7 @@ const TOOLS = [
         size: { type: 'string', description: 'Talle normalizado: XS-XXL, 34-52 o único' },
         max_price: { type: 'number' },
         brand_slug: { type: 'string' },
-        query: { type: 'string', description: 'Texto libre a buscar en el nombre del producto' },
+        query: { type: 'string', description: 'Palabras clave a buscar en el nombre del producto o la marca (ej: "baggy", "jean negro", "vestido"). Se busca por palabra suelta, así que usá términos simples.' },
       },
     },
   },
@@ -64,7 +64,15 @@ const TOOLS = [
       properties: {
         items: {
           type: 'array',
-          items: { type: 'object', properties: { variant_id: { type: 'string' } }, required: ['variant_id'] },
+          description: 'Los productos a mostrar. Pasá product_id (de search_products) y opcionalmente el talle; nosotros elegimos la variante con stock. O variant_id si ya lo tenés de get_product.',
+          items: {
+            type: 'object',
+            properties: {
+              product_id: { type: 'string', description: 'id del producto (de search_products)' },
+              variant_id: { type: 'string', description: 'id de la variante (de get_product), opcional' },
+              size: { type: 'string', description: 'talle pedido, para elegir la variante correcta' },
+            },
+          },
         },
         note: { type: 'string', description: 'Nota corta de por qué estas opciones' },
       },
@@ -216,7 +224,17 @@ async function execTool(supa, session, name, input, collected) {
       if (input.size) query = query.contains('sizes', [String(input.size)]);
       if (input.brand_slug) query = query.eq('store_slug', String(input.brand_slug));
       if (Number(input.max_price) > 0) query = query.lte('price', Number(input.max_price));
-      if (input.query) query = query.ilike('name', `%${String(input.query).slice(0, 60)}%`);
+      if (input.query) {
+        // Tolerant text match: split into words and match ANY of them against
+        // the name or brand. A phrase like "jean baggy wide" then still finds
+        // "Young Baggy", instead of failing on a full-phrase substring match.
+        const words = String(input.query).toLowerCase()
+          .replace(/[%,()*\\]/g, ' ').split(/\s+/).filter((w) => w.length >= 3).slice(0, 6);
+        if (words.length) {
+          const ors = words.flatMap((w) => [`name.ilike.%${w}%`, `store_name.ilike.%${w}%`]).join(',');
+          query = query.or(ors);
+        }
+      }
       query = query.order('created_at', { ascending: false });
       const { data } = await query;
       return (data || []).map((p) => ({
@@ -317,12 +335,29 @@ async function execTool(supa, session, name, input, collected) {
     }
 
     case 'create_recommendation': {
-      const items = (input.items || []).filter((i) => isUuid(i.variant_id)).slice(0, 6);
-      if (!items.length) return { error: 'no valid items' };
+      // Accept variant_id directly, or resolve a product_id (+ optional size) to
+      // an in-stock variant. The model usually only has product_ids from
+      // search_products, so this is what makes the cards actually render.
+      const variantIds = [];
+      for (const it of (input.items || []).slice(0, 6)) {
+        if (isUuid(it?.variant_id)) { variantIds.push(it.variant_id); continue; }
+        if (isUuid(it?.product_id)) {
+          const { data: vs } = await supa
+            .from('variants').select('id, size, stock')
+            .eq('product_id', it.product_id).gt('stock', 0);
+          if (vs && vs.length) {
+            const bySize = it.size
+              ? vs.find((v) => String(v.size).toLowerCase() === String(it.size).toLowerCase())
+              : null;
+            variantIds.push((bySize || vs[0]).id);
+          }
+        }
+      }
+      if (!variantIds.length) return { error: 'no valid items' };
       const { data: variants } = await supa
         .from('variants')
         .select('id, size, color, price, promotional_price, stock, products(id, name, slug, store_id, published, stores(id, name, slug, status, coupon_discount_pct, tn_store_id, access_token))')
-        .in('id', items.map((i) => i.variant_id));
+        .in('id', variantIds);
 
       const cards = [];
       const couponByStore = new Map();

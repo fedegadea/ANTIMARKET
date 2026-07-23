@@ -70,10 +70,20 @@ async function boot() {
 
 function render(tab) {
   view.replaceChildren(el('p', { class: 'empty', text: 'Cargando…' }));
-  const tabs = { aplicaciones, tiendas, liquidaciones, conversaciones, salud };
+  const tabs = { aplicaciones, tiendas, ventas, carritos, marketing, liquidaciones, conversaciones, salud };
   tabs[tab]().catch((e) => {
     view.replaceChildren(el('p', { class: 'form-error', text: 'Error: ' + e.message }));
   });
+}
+
+function fmtDate(s) { return s ? String(s).slice(0, 16).replace('T', ' ') : '—'; }
+
+function statCards(items) {
+  return el('div', { class: 'stat-row' }, items.map((it) =>
+    el('div', { class: 'stat-card' }, [
+      el('div', { class: 'stat-num', text: it.value }),
+      el('div', { class: 'stat-label', text: it.label }),
+    ])));
 }
 
 function table(headers, rows) {
@@ -209,6 +219,113 @@ async function tiendas() {
       cb.addEventListener('change', () => apiCall('/admin/stores', 'PATCH', { product_id: p.id, featured: cb.checked }).then(() => toast('Guardado')));
       featuredBox.appendChild(el('label', { style: 'display:flex; gap:0.5rem; font-size: var(--text-sm); align-items:center' }, [cb, p.name + ' (' + (p.category || 'otros') + ')']));
     });
+  }
+}
+
+// ---------- Ventas ----------
+async function ventas() {
+  const data = await apiCall('/admin/sales');
+  const t = data.totals;
+  view.replaceChildren(
+    statCards([
+      { value: String(t.orders), label: 'ventas atribuidas' },
+      { value: money(t.gmv), label: 'facturación (GMV)' },
+      { value: money(t.commission), label: 'comisión Anti Market' },
+    ]),
+    el('h3', { text: 'Por marca', style: 'margin-top: var(--space-4)' }),
+    data.by_brand.length
+      ? table(['Marca', 'Ventas', 'GMV', 'Comisión', 'Asesora', 'Shopping'],
+          data.by_brand.map((b) => el('tr', {}, [
+            el('td', {}, [el('strong', { text: b.brand })]),
+            el('td', { text: String(b.orders) }),
+            el('td', { text: money(b.gmv) }),
+            el('td', { text: money(b.commission) }),
+            el('td', { text: String(b.agent) }),
+            el('td', { text: String(b.shopping) }),
+          ])))
+      : el('p', { class: 'empty', text: 'Todavía no hay ventas atribuidas.' }),
+    el('h3', { text: 'Últimas ventas', style: 'margin-top: var(--space-4)' }),
+    data.sales.length
+      ? table(['Fecha', 'Marca', 'Pedido', 'Total', 'Comisión', 'Canal', 'Cliente', 'Estado'],
+          data.sales.map((s) => el('tr', {}, [
+            el('td', { text: fmtDate(s.date) }),
+            el('td', { text: s.brand }),
+            el('td', { text: s.order_number || '—' }),
+            el('td', { text: money(s.total) }),
+            el('td', { text: money(s.commission) }),
+            el('td', {}, [el('span', { class: 'badge', text: s.channel === 'agent' ? 'asesora' : 'shopping' })]),
+            el('td', { text: s.customer }),
+            el('td', {}, [el('span', { class: 'badge' + (s.status === 'settled' ? ' badge--ok' : s.status === 'reversed' ? ' badge--bad' : ''), text: s.status })]),
+          ])))
+      : el('p', { class: 'empty', text: '—' }),
+  );
+}
+
+// ---------- Carritos abandonados ----------
+async function carritos() {
+  const data = await apiCall('/admin/carts');
+  if (!data.carts.length) {
+    view.replaceChildren(el('p', { class: 'empty', text: 'Sin carritos abandonados. Todo lo que arrancó, se cerró.' }));
+    return;
+  }
+  view.replaceChildren(
+    el('p', { class: 'muted', style: 'margin-bottom: var(--space-3)', text: 'Pedidos que empezaron el checkout guiado y no se completaron. "Parcial" = pagó algunas marcas, no todas.' }),
+    table(['Iniciado', 'Cliente', 'Contacto', 'Total', 'Marcas (pagadas)', 'Detalle', 'Estado'],
+      data.carts.map((c) => el('tr', {}, [
+        el('td', {}, [el('div', { text: fmtDate(c.created_at) }), el('div', { class: 'muted', text: 'hace ' + c.minutes_ago + ' min' })]),
+        el('td', { text: c.buyer_name || '—' }),
+        el('td', {}, [
+          c.buyer_email ? el('div', {}, [el('a', { href: 'mailto:' + c.buyer_email, text: c.buyer_email })]) : null,
+          c.buyer_phone ? el('div', { class: 'muted', text: c.buyer_phone }) : null,
+          (!c.buyer_email && !c.buyer_phone) ? el('span', { class: 'muted', text: 'sin datos' }) : null,
+        ].filter(Boolean)),
+        el('td', { text: money(c.total) }),
+        el('td', { text: c.paid_count + ' / ' + c.store_count }),
+        el('td', {}, [el('div', { class: 'muted', style: 'font-size: var(--text-xs)',
+          text: c.brands.map((b) => b.brand + ' (' + (b.payment_status === 'paid' ? '✓' : b.payment_status === 'cancelled' ? '✕' : '…') + ')').join(' · ') })]),
+        el('td', {}, [el('span', { class: 'badge' + (c.status === 'partial' ? ' badge--ok' : ''), text: c.status })]),
+      ]))),
+  );
+}
+
+// ---------- Marketing (base de clientes + export) ----------
+async function marketing() {
+  const data = await apiCall('/admin/customers');
+  const t = data.totals;
+  const exportBtn = el('a', { class: 'btn btn--sm', href: '#', text: '↓ Exportar CSV', onclick: (e) => { e.preventDefault(); downloadCustomersCsv(); } });
+  view.replaceChildren(...[
+    el('div', { style: 'display:flex; justify-content:space-between; align-items:center; gap: var(--space-3); flex-wrap: wrap' }, [
+      statCards([
+        { value: String(t.total), label: 'clientes en la base' },
+        { value: String(t.with_account), label: 'con cuenta' },
+        { value: String(t.opt_in), label: 'aceptan novedades' },
+      ]),
+      exportBtn,
+    ]),
+    el('div', { style: 'height: var(--space-3)' }),
+    data.customers.length
+      ? table(['Email', 'Nombre', 'Teléfono', 'Talles (arr/abj/calz)', 'Novedades', 'Cuenta', 'Alta'],
+          data.customers.map((c) => el('tr', {}, [
+            el('td', { text: c.email || '—' }),
+            el('td', { text: c.name || '—' }),
+            el('td', { text: c.phone || '—' }),
+            el('td', { text: [c.size_top, c.size_bottom, c.size_shoes].map((x) => x || '–').join(' / ') }),
+            el('td', {}, [el('span', { class: 'badge' + (c.opt_in_marketing ? ' badge--ok' : ''), text: c.opt_in_marketing ? 'sí' : 'no' })]),
+            el('td', { text: c.has_account ? '✓' : '—' }),
+            el('td', { text: (c.created_at || '').slice(0, 10) }),
+          ])))
+      : el('p', { class: 'empty', text: 'Sin clientes todavía. El pop-up de email y las cuentas los van a poblar.' }),
+    data.customers.length >= 500 ? el('p', { class: 'muted', style: 'margin-top: var(--space-2)', text: 'Mostrando los primeros 500. El CSV trae todos.' }) : null,
+  ].filter(Boolean));
+
+  async function downloadCustomersCsv() {
+    const res = await fetch('/api/admin/customers?format=csv', { headers: { authorization: 'Bearer ' + token } });
+    if (!res.ok) { toast('No se pudo exportar'); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = el('a', { href: url, download: 'antimarket-clientes.csv' });
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
   }
 }
 

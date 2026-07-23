@@ -27,6 +27,10 @@
     .conv .log { max-height: 240px; overflow-y: auto; font-size: var(--text-sm); display: grid; gap: 0.4rem; margin-block: var(--space-2); }
     .conv .log .u { color: var(--ink); }
     .conv .log .a { color: var(--muted); }
+    .stat-row { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+    .stat-card { border: var(--border); background: #fff; border-radius: var(--radius); padding: var(--space-3) var(--space-4); min-width: 140px; }
+    .stat-num { font-family: var(--font-display); font-size: var(--text-xl); }
+    .stat-label { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-top: 0.2rem; }
   </style>
 </head>
 <body>
@@ -55,6 +59,9 @@
         <div class="tabs" role="tablist">
           <button role="tab" aria-selected="true" data-tab="aplicaciones">Aplicaciones</button>
           <button role="tab" aria-selected="false" data-tab="tiendas">Tiendas</button>
+          <button role="tab" aria-selected="false" data-tab="ventas">Ventas</button>
+          <button role="tab" aria-selected="false" data-tab="carritos">Carritos abandonados</button>
+          <button role="tab" aria-selected="false" data-tab="marketing">Marketing</button>
           <button role="tab" aria-selected="false" data-tab="liquidaciones">Liquidaciones</button>
           <button role="tab" aria-selected="false" data-tab="conversaciones">Conversaciones</button>
           <button role="tab" aria-selected="false" data-tab="salud">Salud</button>
