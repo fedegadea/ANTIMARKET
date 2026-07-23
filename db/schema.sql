@@ -1,8 +1,8 @@
 -- ============================================================
 -- ANTI MARKET — schema v1 (idempotent migration)
 -- Run in Supabase SQL editor. Safe to re-run.
--- DECISIÓN: commission is a flat 7% for both channels (owner's
--- amendment over spec v1.0 which said 5%/10%). Channel is still
+-- DECISIÓN: commission is a flat 6.5% for both channels (owner's
+-- amendment; was 7% then 5%, spec v1.0 said 5%/10%). Channel is still
 -- tracked per attribution for analytics and brand reporting.
 -- ============================================================
 
@@ -30,8 +30,8 @@ create table if not exists stores (
   tagline text,
   bio text,
   branding_approved boolean not null default false,
-  commission_shopping numeric(4,3) not null default 0.070,
-  commission_agent numeric(4,3) not null default 0.070,
+  commission_shopping numeric(4,3) not null default 0.065,
+  commission_agent numeric(4,3) not null default 0.065,
   settlement_threshold_ars numeric(12,2) not null default 300000,
   -- agent backup coupons: default discount pct (0 = coupon is attribution marker only)
   coupon_discount_pct numeric(4,1) not null default 5.0,

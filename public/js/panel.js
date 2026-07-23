@@ -350,7 +350,7 @@ function renderResumen() {
       kpi(money(s.month_sales_shopping), 'Ventas · shopping'),
       kpi(money(s.month_sales_agent), 'Ventas · asesora'),
       kpi(String(s.month_orders), 'Órdenes atribuidas'),
-      kpi(money(s.month_commission_accrued), 'Comisión devengada (7%)'),
+      kpi(money(s.month_commission_accrued), 'Comisión devengada (6,5%)'),
     ]),
     chart(overview.daily_sales),
   );
