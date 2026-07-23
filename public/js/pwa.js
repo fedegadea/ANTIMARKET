@@ -6,6 +6,29 @@
   var el = AM.el;
   var toast = AM.toast || function () {};
 
+  // 0) mobile hamburger for the header nav (the nav has too many items to fit in
+  //    one row on phones; on mobile it collapses behind this toggle).
+  (function initNav() {
+    var container = document.querySelector('.site-header .container');
+    var nav = container && container.querySelector('.site-nav');
+    if (!container || !nav || container.querySelector('.nav-toggle')) return;
+    var btn = document.createElement('button');
+    btn.className = 'nav-toggle';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Abrir menú');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.innerHTML = '<span></span><span></span><span></span>';
+    function setOpen(open) {
+      nav.classList.toggle('open', open);
+      btn.classList.toggle('is-open', open);
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      btn.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+    }
+    btn.addEventListener('click', function () { setOpen(!nav.classList.contains('open')); });
+    nav.addEventListener('click', function (e) { if (e.target.closest('a')) setOpen(false); });
+    container.insertBefore(btn, nav);
+  })();
+
   // 1) register the service worker (enables install + offline shell)
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
