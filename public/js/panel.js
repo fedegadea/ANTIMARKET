@@ -36,24 +36,107 @@ async function apiPost(path, body) {
   return res.json();
 }
 
-// --- auth ---
-const { data: { session } } = await supabase.auth.getSession();
-if (!session) {
-  loginSection.hidden = false;
-  loginSection.querySelector('form').addEventListener('submit', async (e) => {
+// --- auth (email + contraseña, con "olvidé mi contraseña" y recuperación) ---
+const recoverySection = $('[data-recovery]');
+let isRecovery = false;
+
+function showRecovery() { loginSection.hidden = true; appSection.hidden = true; recoverySection.hidden = false; }
+
+// Supabase dispara este evento cuando el usuario llega desde el mail de recuperación.
+supabase.auth.onAuthStateChange((event) => { if (event === 'PASSWORD_RECOVERY') { isRecovery = true; showRecovery(); } });
+
+function wireLogin() {
+  const form = $('[data-login-form]');
+  const msg = $('[data-login-msg]');
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const msg = $('[data-login-msg]');
-    const email = e.target.email.value.trim();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: location.origin + '/panel/' },
-    });
-    msg.className = error ? 'form-error' : 'form-ok';
-    msg.textContent = error ? 'No pudimos mandar el link. Probá de nuevo.' : 'Listo — revisá tu casilla y abrí el link.';
+    const email = form.email.value.trim();
+    const password = form.password.value;
+    msg.className = ''; msg.textContent = 'Ingresando…';
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      msg.className = 'form-error';
+      msg.textContent = /Invalid login credentials/i.test(error.message)
+        ? 'Email o contraseña incorrectos. Si es tu primera vez, tocá "crear contraseña".'
+        : 'No pudimos ingresar. Probá de nuevo.';
+      return;
+    }
+    location.reload();
   });
-} else {
-  token = session.access_token;
-  await boot();
+  // ¿el email es el contacto de una marca registrada? gatea crear/recuperar
+  async function isBrandEmail(email) {
+    try { const r = await fetch('/api/brand-panel/exists?email=' + encodeURIComponent(email)); return (await r.json()); }
+    catch (e) { return { isBrand: false }; }
+  }
+  const NOT_BRAND = 'Ese email no figura como contacto de ninguna marca en Anti Market. Usá el email de contacto de tu Tienda Nube (con el que aprobamos tu tienda). Si creés que es un error, escribinos.';
+
+  $('[data-register]').addEventListener('click', async (e) => {
+    e.preventDefault();
+    const email = form.email.value.trim();
+    const password = form.password.value;
+    if (!email) { msg.className = 'form-error'; msg.textContent = 'Escribí el email de contacto de tu marca.'; form.email.focus(); return; }
+    msg.className = ''; msg.textContent = 'Verificando tu marca…';
+    const chk = await isBrandEmail(email);
+    if (!chk.isBrand) { msg.className = 'form-error'; msg.textContent = NOT_BRAND; return; }
+    if (password.length < 6) { msg.className = 'form-error'; msg.textContent = '¡' + (chk.store_name || 'Tu marca') + ' está! Ahora elegí una contraseña de 6+ caracteres arriba y volvé a tocar "crear contraseña".'; form.password.focus(); return; }
+    msg.textContent = 'Creando tu acceso…';
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      msg.className = 'form-error';
+      msg.textContent = /already registered/i.test(error.message) ? 'Ese email ya tiene contraseña. Ingresá arriba, o usá "Olvidé mi contraseña".' : 'No se pudo crear. Probá de nuevo.';
+      return;
+    }
+    if (data.session) { location.reload(); return; }
+    msg.className = 'form-ok'; msg.textContent = 'Listo. Te mandamos un email para confirmar; después entrás con tu email y contraseña.';
+  });
+
+  $('[data-forgot]').addEventListener('click', async (e) => {
+    e.preventDefault();
+    const email = form.email.value.trim();
+    if (!email) { msg.className = 'form-error'; msg.textContent = 'Escribí tu email arriba y tocá "Olvidé mi contraseña".'; form.email.focus(); return; }
+    msg.className = ''; msg.textContent = 'Verificando tu marca…';
+    const chk = await isBrandEmail(email);
+    if (!chk.isBrand) { msg.className = 'form-error'; msg.textContent = NOT_BRAND; return; }
+    msg.textContent = 'Enviando el email de recuperación…';
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/panel/' });
+    if (error) {
+      msg.className = 'form-error';
+      msg.textContent = 'No se pudo enviar: ' + (error.message || 'error') + (/rate|limit/i.test(error.message || '') ? ' (esperá unos minutos o configurá SMTP propio en Supabase).' : '');
+    } else {
+      msg.className = 'form-ok';
+      msg.textContent = 'Listo — revisá tu casilla (' + email + ') y seguí el link para poner una nueva contraseña.';
+    }
+  });
+}
+
+function wireRecovery() {
+  const form = $('[data-recovery-form]');
+  const msg = $('[data-recovery-msg]');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const password = form.password.value;
+    if (password.length < 6) { msg.className = 'form-error'; msg.textContent = 'Mínimo 6 caracteres.'; return; }
+    msg.className = ''; msg.textContent = 'Guardando…';
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) { msg.className = 'form-error'; msg.textContent = 'No se pudo cambiar. Probá de nuevo.'; return; }
+    msg.className = 'form-ok'; msg.textContent = 'Contraseña actualizada. Entrando…';
+    setTimeout(() => { location.href = '/panel/'; }, 800);
+  });
+}
+
+wireLogin();
+wireRecovery();
+
+if (/type=recovery/.test(location.hash)) { isRecovery = true; showRecovery(); }
+
+if (!isRecovery) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    loginSection.hidden = false;
+  } else {
+    token = session.access_token;
+    await boot();
+  }
 }
 
 $('[data-logout]').addEventListener('click', async () => {
@@ -99,7 +182,80 @@ function render(tab) {
   if (tab === 'ordenes') renderOrdenes();
   if (tab === 'talles') renderTalles();
   if (tab === 'outlet') renderOutlet();
+  if (tab === 'envios') renderEnvios();
   if (tab === 'liquidaciones') renderLiquidaciones();
+}
+
+// ---------- Envíos (demora por zona / provincia) ----------
+async function renderEnvios() {
+  const data = await apiGet('/brand-panel/shipping');
+  const SHIP = window.AM.SHIP;
+  const presets = data.presets || SHIP.presets;
+  const provinces = data.provinces || SHIP.provinces;
+  const incoming = data.rules || [];
+  let defaultPreset = (incoming.find((r) => !r.zones || !r.zones.length) || {}).preset || '5d';
+  let zoneRules = incoming.filter((r) => r.zones && r.zones.length).map((r) => ({ preset: r.preset, zones: r.zones.slice() }));
+
+  view.appendChild(el('p', { class: 'muted', style: 'font-size: var(--text-sm); margin-bottom: var(--space-3)',
+    text: 'Configurá cuánto tarda en llegar tu pedido según la zona. El cliente elige su provincia y ve su demora real (y puede filtrar por eso). Empezá por el "resto del país" y sumá zonas más rápidas si tenés (ej: CABA y GBA en 48 hs).' }));
+
+  function presetSelect(value, onChange) {
+    const s = el('select', { style: 'padding:0.5rem; border: var(--border); border-radius: var(--radius); background:#fff; min-width: 220px' });
+    presets.forEach((p) => s.appendChild(el('option', p.key === value ? { value: p.key, text: p.label, selected: true } : { value: p.key, text: p.label })));
+    s.addEventListener('change', () => onChange(s.value));
+    return s;
+  }
+  function zonesGrid(rule) {
+    const grid = el('div', { class: 'ship-zones' });
+    provinces.forEach((pv) => {
+      const cb = el('input', { type: 'checkbox', value: pv });
+      if (rule.zones.indexOf(pv) >= 0) cb.checked = true;
+      cb.addEventListener('change', () => {
+        if (cb.checked) { if (rule.zones.indexOf(pv) < 0) rule.zones.push(pv); }
+        else rule.zones = rule.zones.filter((z) => z !== pv);
+      });
+      grid.appendChild(el('label', { class: 'ship-zone' }, [cb, document.createTextNode(' ' + pv)]));
+    });
+    return grid;
+  }
+
+  const host = el('div');
+  const msg = el('p', { class: 'am-form-msg', style: 'margin-top: var(--space-2)' });
+
+  function paint() {
+    host.replaceChildren();
+    // regla default (resto del país)
+    host.appendChild(el('div', { class: 'ship-rule' }, [
+      el('div', { class: 'ship-rule-head', text: '🌎 Resto del país (por defecto)' }),
+      presetSelect(defaultPreset, (v) => { defaultPreset = v; }),
+    ]));
+    // reglas por zona
+    zoneRules.forEach((rule) => {
+      const rm = el('button', { class: 'linklike', type: 'button', text: 'Quitar' });
+      rm.addEventListener('click', () => { zoneRules = zoneRules.filter((r) => r !== rule); paint(); });
+      host.appendChild(el('div', { class: 'ship-rule' }, [
+        el('div', { class: 'ship-rule-head' }, [el('span', { text: '📍 Demora para las provincias elegidas' }), rm]),
+        presetSelect(rule.preset, (v) => { rule.preset = v; }),
+        zonesGrid(rule),
+      ]));
+    });
+    const add = el('button', { class: 'btn btn--ghost btn--sm', type: 'button', text: '+ Agregar demora para una zona' });
+    add.addEventListener('click', () => { zoneRules.push({ preset: presets[1].key, zones: [] }); paint(); });
+    host.appendChild(el('div', { style: 'margin-top: var(--space-2)' }, [add]));
+  }
+  paint();
+
+  const save = el('button', { class: 'btn', text: 'Guardar envíos', style: 'margin-top: var(--space-3)' });
+  save.addEventListener('click', async () => {
+    save.disabled = true; msg.textContent = '';
+    const rules = [{ preset: defaultPreset, zones: [] }].concat(zoneRules.filter((r) => r.zones.length));
+    try {
+      await apiPost('/brand-panel/shipping', { rules });
+      window.AM.toast('Envíos guardados'); msg.className = 'am-form-msg form-ok'; msg.textContent = 'Guardado.';
+    } catch (e) { msg.className = 'am-form-msg form-error'; msg.textContent = 'No se pudo guardar.'; }
+    finally { save.disabled = false; }
+  });
+  view.append(host, save, msg);
 }
 
 // ---------- Outlet ----------

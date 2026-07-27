@@ -74,10 +74,13 @@
           <label>Email
             <input name="email" type="email" required autocomplete="email">
           </label>
+          <label>WhatsApp
+            <input name="phone" type="tel" placeholder="+54 9 11 ..." maxlength="40" autocomplete="tel">
+          </label>
           <label>Instagram
             <input name="instagram" placeholder="@tumarca" maxlength="80">
           </label>
-          <label>URL de tu Tienda Nube
+          <label>URL de Admin de tu Tienda Nube
             <input name="tn_url" type="url" placeholder="https://tumarca.mitiendanube.com" maxlength="200">
           </label>
           <label>Categoría
@@ -153,6 +156,7 @@
               brand_name: f.get('brand_name'),
               contact_name: f.get('contact_name'),
               email: f.get('email'),
+              phone: f.get('phone') || undefined,
               instagram: f.get('instagram') || undefined,
               tn_url: f.get('tn_url') || undefined,
               category: f.get('category'),

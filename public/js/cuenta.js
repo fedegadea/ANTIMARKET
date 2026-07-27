@@ -90,40 +90,108 @@
     }
   }
 
-  // ---------- profile ----------
-  const TEXT_FIELDS = ['name', 'phone', 'size_top', 'size_bottom', 'size_shoes', 'style_notes',
-    'identification', 'address_street', 'address_number', 'address_floor',
+  // ---------- Mis pedidos ----------
+  const ORDER_STATUS = { open: 'En proceso', partial: 'Pago parcial', complete: 'Completado' };
+  const PAY_STATUS = { pending: 'Pago pendiente', paid: 'Pagado', failed: 'Falló' };
+  function fmtDate(s) { try { return new Date(s).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' }); } catch (e) { return ''; } }
+
+  function orderCard(o) {
+    const done = o.status === 'complete';
+    const head = el('div', { style: 'display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap' }, [
+      el('div', {}, [
+        el('div', { style: 'font-weight:600', text: (o.store_count > 1 ? (o.store_count + ' marcas') : '1 marca') + ' · ' + money(o.total) }),
+        el('div', { class: 'muted', style: 'font-size:var(--text-sm)', text: fmtDate(o.created_at) }),
+      ]),
+      el('span', { class: 'step-badge ' + (done ? 'step-badge--ok' : 'step-badge--next'), text: ORDER_STATUS[o.status] || o.status }),
+    ]);
+    const brands = (o.brands || []).map(function (b) {
+      return el('div', { class: 'order-line', style: 'grid-template-columns:1fr auto' }, [
+        el('span', { text: b.brand }),
+        el('span', { class: 'muted', style: 'font-size:var(--text-xs)', text: (PAY_STATUS[b.payment_status] || b.payment_status || '') + ' · ' + money(b.subtotal) }),
+      ]);
+    });
+    const kids = [head, el('div', { class: 'step-lines', style: 'margin-top:10px' }, brands)];
+    if (!done && o.token) kids.push(el('a', { class: 'btn btn--sm', href: '/pedido?token=' + encodeURIComponent(o.token), text: 'Seguir mi pedido →' }));
+    return el('div', { class: 'step-card' }, kids);
+  }
+
+  async function renderOrders() {
+    const box = document.querySelector('[data-orders]');
+    if (!box) return;
+    try {
+      const { orders } = await A.getOrders();
+      if (!orders || !orders.length) {
+        box.replaceChildren(el('p', { class: 'fav-empty', text: 'Todavía no hiciste pedidos. Cuando compres, los vas a ver acá.' }));
+        return;
+      }
+      box.replaceChildren.apply(box, orders.map(orderCard));
+    } catch (e) {
+      box.replaceChildren(el('p', { class: 'fav-empty', text: 'No pudimos cargar tus pedidos.' }));
+    }
+  }
+
+  // ---------- perfil + direcciones ----------
+  const PERSONAL_FIELDS = ['name', 'phone', 'size_top', 'size_bottom', 'size_shoes', 'style_notes'];
+  const ADDRESS_FIELDS = ['identification', 'address_street', 'address_number', 'address_floor',
     'address_locality', 'address_city', 'address_province', 'address_zipcode'];
 
   async function loadProfile() {
-    const form = document.querySelector('[data-profile-form]');
+    const pForm = document.querySelector('[data-profile-form]');
+    const aForm = document.querySelector('[data-address-form]');
     try {
       const { customer } = await A.getProfile();
-      form.email.value = customer.email || '';
-      TEXT_FIELDS.forEach(function (f) { if (form[f]) form[f].value = customer[f] || ''; });
-      form.opt_in_marketing.checked = !!customer.opt_in_marketing;
+      if (pForm) {
+        pForm.email.value = customer.email || '';
+        PERSONAL_FIELDS.forEach(function (f) { if (pForm[f]) pForm[f].value = customer[f] || ''; });
+        pForm.opt_in_marketing.checked = !!customer.opt_in_marketing;
+      }
+      if (aForm) ADDRESS_FIELDS.forEach(function (f) { if (aForm[f]) aForm[f].value = customer[f] || ''; });
       const hello = document.querySelector('[data-hello]');
       if (hello) hello.textContent = customer.name ? ('Hola, ' + customer.name) : 'Tu cuenta';
     } catch (e) {}
   }
 
-  function wireProfileForm() {
-    const form = document.querySelector('[data-profile-form]');
+  function wireSaveForm(selector, fields, opts) {
+    const form = document.querySelector(selector);
+    if (!form) return;
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
-      const msg = form.querySelector('[data-profile-msg]');
+      const msg = form.querySelector('.am-form-msg');
       const btn = form.querySelector('button[type=submit]');
-      msg.textContent = ''; btn.disabled = true;
+      if (msg) { msg.textContent = ''; msg.className = 'am-form-msg'; }
+      btn.disabled = true;
       try {
-        const patch = { opt_in_marketing: form.opt_in_marketing.checked };
-        TEXT_FIELDS.forEach(function (f) { if (form[f]) patch[f] = form[f].value; });
+        const patch = {};
+        fields.forEach(function (f) { if (form[f]) patch[f] = form[f].value; });
+        if (opts && opts.optIn && form.opt_in_marketing) patch.opt_in_marketing = form.opt_in_marketing.checked;
         await A.saveProfile(patch);
-        msg.className = 'am-form-msg ok'; msg.textContent = 'Guardado.';
-        toast('Perfil guardado');
-        const hello = document.querySelector('[data-hello]');
-        if (hello) hello.textContent = form.name.value ? ('Hola, ' + form.name.value) : 'Tu cuenta';
+        if (msg) { msg.className = 'am-form-msg ok'; msg.textContent = 'Guardado.'; }
+        toast(opts && opts.toast ? opts.toast : 'Guardado');
+        if (opts && opts.optIn) { const hello = document.querySelector('[data-hello]'); if (hello) hello.textContent = form.name.value ? ('Hola, ' + form.name.value) : 'Tu cuenta'; }
       } catch (err) {
-        msg.className = 'am-form-msg err'; msg.textContent = 'No se pudo guardar.';
+        if (msg) { msg.className = 'am-form-msg err'; msg.textContent = 'No se pudo guardar.'; }
+      } finally { btn.disabled = false; }
+    });
+  }
+
+  function wirePasswordForm() {
+    const form = document.querySelector('[data-password-form]');
+    if (!form) return;
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const msg = form.querySelector('[data-password-msg]');
+      const btn = form.querySelector('button[type=submit]');
+      msg.className = 'am-form-msg'; msg.textContent = '';
+      const p1 = form.password.value, p2 = form.password2.value;
+      if (p1.length < 6) { msg.className = 'am-form-msg err'; msg.textContent = 'Mínimo 6 caracteres.'; return; }
+      if (p1 !== p2) { msg.className = 'am-form-msg err'; msg.textContent = 'Las contraseñas no coinciden.'; return; }
+      btn.disabled = true;
+      try {
+        await A.changePassword(p1);
+        msg.className = 'am-form-msg ok'; msg.textContent = 'Contraseña actualizada.';
+        form.reset(); toast('Contraseña cambiada ✓');
+      } catch (err) {
+        msg.className = 'am-form-msg err'; msg.textContent = 'No se pudo cambiar: ' + ((err && err.message) || 'reintentá').slice(0, 80);
       } finally { btn.disabled = false; }
     });
   }
@@ -141,6 +209,7 @@
     if (logged) {
       renderFavorites();
       renderFavBrands();
+      renderOrders();
       if (!wasLogged) loadProfile(); // only on the guest→logged transition (and boot)
     }
     wasLogged = logged;
@@ -149,5 +218,7 @@
   // fires on boot session check, on login (afterLogin emit), and on every fav toggle
   A.onChange(sync);
   A.ready.then(sync);
-  wireProfileForm();
+  wireSaveForm('[data-profile-form]', PERSONAL_FIELDS, { optIn: true, toast: 'Perfil guardado' });
+  wireSaveForm('[data-address-form]', ADDRESS_FIELDS, { toast: 'Dirección guardada' });
+  wirePasswordForm();
 })();

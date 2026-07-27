@@ -112,6 +112,35 @@ export async function GET(request) {
     });
   }
 
+  // ---- Mis pedidos: los pedidos guiados de este cliente (por su email) ----
+  if (action === 'orders') {
+    if (!customer) return err(401, 'not logged in');
+    const { data: groups } = await supa
+      .from('order_groups')
+      .select('public_token, status, total, store_count, created_at, ' +
+              'order_group_segments(position, subtotal, payment_status, checkout_url, stores(name, slug))')
+      .ilike('buyer_email', customer.email)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    const orders = (groups || []).map((g) => {
+      const segs = (g.order_group_segments || []).slice().sort((a, b) => a.position - b.position);
+      return {
+        token: g.public_token,
+        status: g.status,
+        total: Number(g.total || 0),
+        store_count: g.store_count,
+        created_at: g.created_at,
+        brands: segs.map((s) => ({
+          brand: s.stores?.name || '—',
+          subtotal: Number(s.subtotal || 0),
+          payment_status: s.payment_status,
+          checkout_url: s.checkout_url || null,
+        })),
+      };
+    });
+    return json({ orders });
+  }
+
   return err(404, 'unknown action');
 }
 

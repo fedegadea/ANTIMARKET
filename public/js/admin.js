@@ -70,7 +70,7 @@ async function boot() {
 
 function render(tab) {
   view.replaceChildren(el('p', { class: 'empty', text: 'Cargando…' }));
-  const tabs = { aplicaciones, tiendas, ventas, carritos, marketing, liquidaciones, conversaciones, salud };
+  const tabs = { aplicaciones, tiendas, ventas, carritos, marketing, resenas, liquidaciones, conversaciones, salud };
   tabs[tab]().catch((e) => {
     view.replaceChildren(el('p', { class: 'form-error', text: 'Error: ' + e.message }));
   });
@@ -112,8 +112,8 @@ async function aplicaciones() {
   view.replaceChildren(table(
     ['Marca', 'Contacto', 'Categoría', 'Órdenes/mes', '¿Por qué?', 'Estado', 'Acciones'],
     data.applications.map((a) => el('tr', {}, [
-      el('td', {}, [el('strong', { text: a.brand_name }), el('div', { class: 'muted', text: a.instagram || '' })]),
-      el('td', {}, [el('div', { text: a.contact_name }), el('div', { class: 'muted', text: a.email })]),
+      el('td', {}, [el('strong', { text: a.brand_name }), el('div', { class: 'muted', text: a.instagram || '' }), a.tn_url ? el('a', { class: 'muted', href: a.tn_url, target: '_blank', rel: 'noopener', text: 'Tienda Nube ↗' }) : null].filter(Boolean)),
+      el('td', {}, [el('div', { text: a.contact_name }), el('div', { class: 'muted', text: a.email }), a.phone ? el('div', { class: 'muted', text: '📱 ' + a.phone }) : null].filter(Boolean)),
       el('td', { text: a.category }),
       el('td', { text: a.monthly_orders_estimate || '—' }),
       el('td', { text: (a.why || '').slice(0, 120) }),
@@ -327,6 +327,48 @@ async function marketing() {
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
   }
+}
+
+// ---------- Reseñas (moderación) ----------
+async function resenas() {
+  const data = await apiCall('/admin/reviews');
+  const revs = data.reviews || [];
+  function actionBtns(r) {
+    const wrap = el('div', { style: 'display:flex; gap:6px; flex-wrap:wrap' });
+    function act(label, action) {
+      const b = el('button', { class: 'btn btn--sm', text: label });
+      b.addEventListener('click', async () => {
+        if (action === 'delete' && !confirm('¿Borrar esta reseña?')) return;
+        b.disabled = true;
+        try { await apiCall('/admin/reviews', 'POST', { id: r.id, action }); toast('Listo'); resenas(); }
+        catch (e) { toast('Error'); b.disabled = false; }
+      });
+      return b;
+    }
+    if (r.status !== 'approved') wrap.appendChild(act('Aprobar', 'approve'));
+    if (r.status !== 'hidden') wrap.appendChild(act('Ocultar', 'hide'));
+    wrap.appendChild(act('Borrar', 'delete'));
+    return wrap;
+  }
+  const rows = revs.map((r) => el('tr', {}, [
+    el('td', { text: r.product }),
+    el('td', { text: r.brand }),
+    el('td', { text: '★'.repeat(r.stars) }),
+    el('td', { text: r.body || '—' }),
+    el('td', { text: r.author }),
+    el('td', {}, [el('span', { class: 'badge' + (r.status === 'approved' ? ' badge--ok' : r.status === 'hidden' ? ' badge--bad' : ''), text: r.status === 'approved' ? 'aprobada' : r.status === 'hidden' ? 'oculta' : 'pendiente' })]),
+    el('td', {}, [actionBtns(r)]),
+  ]));
+  view.replaceChildren(...[
+    statCards([
+      { value: String(data.pending || 0), label: 'pendientes de aprobar' },
+      { value: String(revs.length), label: 'reseñas en total' },
+    ]),
+    el('div', { style: 'height: var(--space-3)' }),
+    revs.length
+      ? table(['Producto', 'Marca', 'Puntuación', 'Reseña', 'Autor', 'Estado', 'Acciones'], rows)
+      : el('p', { class: 'empty', text: 'Sin reseñas todavía. Cuando los clientes opinen, aparecen acá para moderar.' }),
+  ]);
 }
 
 // ---------- Liquidaciones ----------

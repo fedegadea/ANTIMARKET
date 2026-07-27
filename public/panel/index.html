@@ -64,13 +64,32 @@
     <div class="container">
       <section data-login hidden>
         <h1>Panel de marca</h1>
-        <p class="muted" style="margin-block: var(--space-3)">Entrá con el email de contacto de tu tienda. Te mandamos un link, sin contraseñas.</p>
-        <form class="form-grid">
+        <p class="muted" style="margin-block: var(--space-3)">Entrá con el email de contacto de tu tienda y tu contraseña.</p>
+        <form class="form-grid" data-login-form>
           <label>Email
             <input name="email" type="email" required autocomplete="email">
           </label>
-          <button class="btn" type="submit">Mandame el link</button>
+          <label>Contraseña
+            <input name="password" type="password" required minlength="6" autocomplete="current-password">
+          </label>
+          <button class="btn" type="submit">Ingresar</button>
           <p data-login-msg role="status"></p>
+          <p class="muted" style="font-size: var(--text-sm)">
+            <a href="#" data-forgot>Olvidé mi contraseña</a> &nbsp;·&nbsp;
+            <a href="#" data-register>Primera vez / crear contraseña</a>
+          </p>
+        </form>
+      </section>
+
+      <section data-recovery hidden>
+        <h1>Nueva contraseña</h1>
+        <p class="muted" style="margin-block: var(--space-3)">Elegí tu nueva contraseña para el panel.</p>
+        <form class="form-grid" data-recovery-form>
+          <label>Nueva contraseña
+            <input name="password" type="password" required minlength="6" autocomplete="new-password">
+          </label>
+          <button class="btn" type="submit">Guardar contraseña</button>
+          <p data-recovery-msg role="status"></p>
         </form>
       </section>
 
@@ -81,6 +100,7 @@
           <button role="tab" aria-selected="false" data-tab="ordenes">Órdenes atribuidas</button>
           <button role="tab" aria-selected="false" data-tab="talles">Tablas de talle</button>
           <button role="tab" aria-selected="false" data-tab="outlet">Outlet</button>
+          <button role="tab" aria-selected="false" data-tab="envios">Envíos</button>
           <button role="tab" aria-selected="false" data-tab="liquidaciones">Liquidaciones</button>
         </div>
         <div data-view></div>

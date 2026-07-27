@@ -136,6 +136,19 @@
     async getProfile() { return apiAuth('/account/profile'); },
     async saveProfile(patch) { return apiAuth('/account/profile', { method: 'POST', body: patch }); },
     async getForYou() { return apiAuth('/account/for-you'); },
+    async getOrders() { return apiAuth('/account/orders'); },
+    async changePassword(newPassword) {
+      await ensureSb();
+      const { error } = await sb.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      return true;
+    },
+    async forgotPassword(email) {
+      await ensureSb();
+      const { error } = await sb.auth.resetPasswordForEmail(String(email || '').trim(), { redirectTo: location.origin + '/cuenta' });
+      if (error) throw error;
+      return true;
+    },
     openLogin: () => openAuthModal('login'),
     ready,                       // resolves after the initial session check
     onChange: (fn) => { listeners.push(fn); }, // login/logout + favorites repaint
@@ -154,11 +167,14 @@
       const ico = el('span', { class: 'account-ico', 'aria-hidden': 'true' });
       ico.innerHTML = PROFILE_SVG;   // static markup, no external data
       btn.appendChild(ico);
+      btn.appendChild(el('span', { class: 'account-label' }));   // visible en el menú mobile
       nav.appendChild(btn);
     }
     const logged = !!session;
+    const label = btn.querySelector('.account-label');
+    if (label) label.textContent = logged ? 'Mi perfil' : 'Ingresar';
     btn.href = logged ? '/cuenta' : '#';
-    btn.title = logged ? 'Tu cuenta' : 'Ingresar';
+    btn.title = logged ? 'Mi perfil' : 'Ingresar';
     btn.classList.toggle('is-logged', logged);
     btn.onclick = logged ? null : (e) => { e.preventDefault(); openAuthModal('login'); };
   }
@@ -173,6 +189,36 @@
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
 
     function render(which) {
+      // ---- recuperar contraseña ----
+      if (which === 'forgot') {
+        const form = el('form', { class: 'am-form' }, [
+          el('label', {}, ['Email', el('input', { name: 'email', type: 'email', required: true, autocomplete: 'email' })]),
+          el('p', { class: 'am-form-msg', 'data-msg': '' }),
+          el('button', { class: 'btn', type: 'submit', text: 'Enviar link de recuperación' }),
+        ]);
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const msg = form.querySelector('[data-msg]');
+          const btn = form.querySelector('button[type=submit]');
+          msg.textContent = ''; btn.disabled = true;
+          try {
+            await AMAccount.forgotPassword(form.email.value);
+            msg.className = 'am-form-msg ok';
+            msg.textContent = 'Listo — revisá tu casilla (' + form.email.value.trim() + ') y seguí el link para elegir una nueva contraseña.';
+          } catch (err) {
+            msg.className = 'am-form-msg err'; msg.textContent = 'No se pudo enviar: ' + (String(err.message || err));
+          } finally { btn.disabled = false; }
+        });
+        panel.replaceChildren(
+          el('button', { class: 'am-modal-close', 'aria-label': 'Cerrar', text: '×', onclick: close }),
+          el('h2', { text: 'Recuperar contraseña' }),
+          el('p', { class: 'muted', text: 'Ponés tu email y te mandamos un link para elegir una nueva contraseña.' }),
+          form,
+          el('p', { class: 'am-switch' }, [el('button', { type: 'button', class: 'linklike', text: 'Volver a ingresar', onclick: () => render('login') })]),
+        );
+        const fe = panel.querySelector('input'); if (fe) setTimeout(() => fe.focus(), 40);
+        return;
+      }
       const isLogin = which === 'login';
       panel.replaceChildren(
         el('button', { class: 'am-modal-close', 'aria-label': 'Cerrar', text: '×', onclick: close }),
@@ -214,12 +260,54 @@
             onclick: () => render(isLogin ? 'register' : 'login') }),
         ]),
       );
+      if (isLogin) panel.appendChild(el('p', { class: 'am-switch', style: 'margin-top:0' }, [
+        el('button', { type: 'button', class: 'linklike', text: '¿Olvidaste tu contraseña?', onclick: () => render('forgot') }),
+      ]));
       const first = panel.querySelector('input');
       if (first) setTimeout(() => first.focus(), 40);
     }
     render(mode || 'login');
   }
   window.AMOpenAuth = openAuthModal;
+
+  // Elegir nueva contraseña (al volver del email de recuperación).
+  function openSetPassword() {
+    const backdrop = el('div', { class: 'am-modal-backdrop' });
+    const panel = el('div', { class: 'am-modal' });
+    backdrop.appendChild(panel);
+    document.body.appendChild(backdrop);
+    const close = () => backdrop.remove();
+    const form = el('form', { class: 'am-form' }, [
+      el('label', {}, ['Nueva contraseña', el('input', { name: 'password', type: 'password', required: true, minlength: '8', autocomplete: 'new-password' })]),
+      el('p', { class: 'am-form-msg', 'data-msg': '' }),
+      el('button', { class: 'btn', type: 'submit', text: 'Guardar contraseña' }),
+    ]);
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = form.querySelector('[data-msg]');
+      const btn = form.querySelector('button[type=submit]');
+      const pw = form.password.value;
+      if (pw.length < 8) { msg.className = 'am-form-msg err'; msg.textContent = 'Mínimo 8 caracteres.'; return; }
+      btn.disabled = true; msg.textContent = '';
+      try {
+        await AMAccount.changePassword(pw);
+        msg.className = 'am-form-msg ok'; msg.textContent = '¡Listo! Contraseña actualizada.';
+        setTimeout(() => { close(); location.href = '/cuenta'; }, 1000);
+      } catch (err) { msg.className = 'am-form-msg err'; msg.textContent = 'No se pudo cambiar. Probá de nuevo.'; btn.disabled = false; }
+    });
+    panel.replaceChildren(
+      el('button', { class: 'am-modal-close', 'aria-label': 'Cerrar', text: '×', onclick: close }),
+      el('h2', { text: 'Elegí tu nueva contraseña' }),
+      el('p', { class: 'muted', text: 'Estás cambiando la contraseña de tu cuenta de Anti Market.' }),
+      form,
+    );
+    const fe = panel.querySelector('input'); if (fe) setTimeout(() => fe.focus(), 40);
+  }
+  let recoveryOpened = false;
+  if (/type=recovery/.test(location.hash)) {
+    recoveryOpened = true;
+    ensureSb().then(openSetPassword).catch(function () {});
+  }
 
   // ---------- minimal email pop-up (lead capture) ----------
   function maybeShowLeadPopup() {

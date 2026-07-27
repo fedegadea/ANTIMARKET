@@ -54,6 +54,8 @@
         <div class="account-tabs" role="tablist">
           <button data-tab="favoritos" class="is-active" role="tab">Favoritos</button>
           <button data-tab="marcas" role="tab">Mis marcas</button>
+          <button data-tab="pedidos" role="tab">Mis pedidos</button>
+          <button data-tab="direcciones" role="tab">Mis direcciones</button>
           <button data-tab="perfil" role="tab">Mi perfil</button>
         </div>
 
@@ -65,21 +67,13 @@
           <div class="brand-chips" data-fav-brands></div>
         </div>
 
-        <div class="account-panel" data-panel="perfil">
-          <p class="section-sub">Con esto la asesora te conoce mejor y te recomendamos tu talle.</p>
-          <form class="am-form form-grid" data-profile-form>
-            <label>Nombre <input name="name" type="text" autocomplete="name"></label>
-            <label>Email <input name="email" type="email" disabled></label>
-            <label>WhatsApp <input name="phone" type="tel" autocomplete="tel" placeholder="+54 9 ..."></label>
-            <label>Talle de arriba (remeras, camisas) <input name="size_top" type="text" placeholder="S, M, 40…"></label>
-            <label>Talle de abajo (jeans, pantalones) <input name="size_bottom" type="text" placeholder="38, 40…"></label>
-            <label>Talle de calzado <input name="size_shoes" type="text" placeholder="37, 38…"></label>
-            <label>Tu estilo, colores, marcas que te gustan
-              <textarea name="style_notes" rows="3" placeholder="Ej: prefiero prendas oversize, tonos tierra, evito el negro."></textarea>
-            </label>
+        <div class="account-panel" data-panel="pedidos">
+          <div data-orders><p class="fav-empty">Cargando tus pedidos…</p></div>
+        </div>
 
-            <h3 class="account-subhead">Dirección de envío</h3>
-            <p class="section-sub" style="margin-top:0">La cargás una vez y te viene precargada en el checkout de cada marca.</p>
+        <div class="account-panel" data-panel="direcciones">
+          <p class="section-sub">La cargás una vez y te viene precargada en el checkout de cada marca.</p>
+          <form class="am-form form-grid" data-address-form>
             <label>DNI / CUIT <input name="identification" type="text" inputmode="numeric" autocomplete="off" placeholder="Para la factura y el envío"></label>
             <div class="field-row">
               <label style="flex:3">Calle <input name="address_street" type="text" autocomplete="address-line1"></label>
@@ -94,10 +88,34 @@
               <label style="flex:2">Provincia <input name="address_province" type="text" autocomplete="address-level1"></label>
               <label style="flex:1">CP <input name="address_zipcode" type="text" autocomplete="postal-code"></label>
             </div>
+            <p class="am-form-msg" data-address-msg></p>
+            <button class="btn" type="submit">Guardar dirección</button>
+          </form>
+        </div>
 
+        <div class="account-panel" data-panel="perfil">
+          <p class="section-sub">Con esto la asesora te conoce mejor y te recomendamos tu talle.</p>
+          <form class="am-form form-grid" data-profile-form>
+            <label>Nombre <input name="name" type="text" autocomplete="name"></label>
+            <label>Email <input name="email" type="email" disabled></label>
+            <label>WhatsApp <input name="phone" type="tel" autocomplete="tel" placeholder="+54 9 ..."></label>
+            <label>Talle de arriba (remeras, camisas) <input name="size_top" type="text" placeholder="S, M, 40…"></label>
+            <label>Talle de abajo (jeans, pantalones) <input name="size_bottom" type="text" placeholder="38, 40…"></label>
+            <label>Talle de calzado <input name="size_shoes" type="text" placeholder="37, 38…"></label>
+            <label>Tu estilo, colores, marcas que te gustan
+              <textarea name="style_notes" rows="3" placeholder="Ej: prefiero prendas oversize, tonos tierra, evito el negro."></textarea>
+            </label>
             <label class="check-inline"><input name="opt_in_marketing" type="checkbox"> Quiero enterarme de novedades por mail</label>
             <p class="am-form-msg" data-profile-msg></p>
             <button class="btn" type="submit">Guardar</button>
+          </form>
+
+          <h3 class="account-subhead" style="margin-top:var(--space-5)">Seguridad</h3>
+          <form class="am-form form-grid" data-password-form>
+            <label>Nueva contraseña <input name="password" type="password" autocomplete="new-password" minlength="6" placeholder="Mínimo 6 caracteres"></label>
+            <label>Repetir contraseña <input name="password2" type="password" autocomplete="new-password" minlength="6"></label>
+            <p class="am-form-msg" data-password-msg></p>
+            <button class="btn btn--ghost" type="submit">Cambiar contraseña</button>
           </form>
         </div>
       </section>
