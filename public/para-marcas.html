@@ -52,13 +52,6 @@
           </div>
         </div>
 
-        <div class="panel-cta" style="margin-top: calc(-1 * var(--space-2))">
-          <div>
-            <strong>¿Ya te invitamos a sumarte?</strong>
-            <p class="muted" style="margin:0">Conectá tu Tienda Nube en un click (autorizás la app desde tu admin) y quedás lista para la aprobación final.</p>
-          </div>
-          <a class="btn" href="/api/tn/install">Conectar mi Tienda Nube</a>
-        </div>
 
         <h2>Qué es</h2>
         <p>Un shopping digital curado donde tu marca tiene su local virtual — tu estética, tu catálogo, tu stock en tiempo real — y una asesora con inteligencia artificial que conoce a cada clienta y recomienda tus productos cuando son la respuesta correcta.</p>
@@ -72,55 +65,28 @@
         <h2>Qué pedimos a cambio</h2>
         <p>Calidad sostenida, despacho en 48 horas, políticas de cambio claras y respuesta a las clientas. El cupo es cerrado: entrar es difícil a propósito, y quedarse también. Eso es lo que hace que estar adentro valga.</p>
 
-        <h2 id="postulate">Postulate</h2>
-        <p>Si hay lugar en tu categoría, te contactamos. Si no, entrás a la lista de espera — y te avisamos apenas se abra un lugar.</p>
+        <h2 id="postulate">Postulá tu Tienda Nube</h2>
+        <p>Cuatro datos y un click. Al enviar, autorizás la app en tu Tienda Nube (desde tu propio admin) y tu tienda queda <b>pendiente de aprobación</b>. Si entra, te avisamos y tu local virtual ya está armado.</p>
 
         <form class="form-grid" data-application-form>
-          <label>Nombre de la marca
-            <input name="brand_name" required maxlength="80">
-          </label>
-          <label>Nombre de contacto
-            <input name="contact_name" required maxlength="80" autocomplete="name">
+          <label>Nombre de tu marca
+            <input name="brand_name" required maxlength="80" placeholder="Ej: SOULAB">
           </label>
           <label>Email
-            <input name="email" type="email" required autocomplete="email">
+            <input name="email" type="email" required autocomplete="email" placeholder="hola@tumarca.com">
           </label>
           <label>WhatsApp
-            <input name="phone" type="tel" placeholder="+54 9 11 ..." maxlength="40" autocomplete="tel">
+            <input name="phone" type="tel" required placeholder="+54 9 11 ..." maxlength="40" autocomplete="tel">
           </label>
-          <label>Instagram
-            <input name="instagram" placeholder="@tumarca" maxlength="80">
-          </label>
-          <label>URL de Admin de tu Tienda Nube
-            <input name="tn_url" type="url" placeholder="https://tumarca.mitiendanube.com" maxlength="200">
-          </label>
-          <label>Categoría
-            <select name="category" required>
-              <option value="">Elegí una</option>
-              <option value="moda">Moda</option>
-              <option value="wellness">Wellness</option>
-              <option value="beauty">Beauty</option>
-              <option value="accesorios">Accesorios</option>
-              <option value="deco">Deco</option>
-            </select>
-          </label>
-          <label>Órdenes mensuales estimadas
-            <select name="monthly_orders_estimate">
-              <option value="">Elegí un rango</option>
-              <option>Menos de 50</option>
-              <option>50 a 200</option>
-              <option>200 a 500</option>
-              <option>Más de 500</option>
-            </select>
-          </label>
-          <label>¿Por qué Anti Market?
-            <textarea name="why" rows="4" maxlength="1000"></textarea>
+          <label>Link del admin de tu Tienda Nube
+            <input name="tn_url" type="url" required placeholder="https://tumarca.mitiendanube.com" maxlength="200">
           </label>
           <!-- honeypot -->
           <label class="hp-field" aria-hidden="true">No completes este campo
             <input name="website" tabindex="-1" autocomplete="off">
           </label>
-          <button class="btn" type="submit">Enviar postulación</button>
+          <button class="btn" type="submit" style="font-size:var(--text-base);padding:0.95rem 1.6rem">Postular mi Tienda Nube →</button>
+          <p class="muted" style="font-size:var(--text-sm);margin:0">Te lleva a Tienda Nube para autorizar la app (1 click, con tu sesión). Sin costo fijo — solo comisión por venta.</p>
           <p data-form-msg role="status"></p>
         </form>
       </div>
@@ -160,30 +126,30 @@
         const btn = form.querySelector('button[type=submit]');
         btn.disabled = true;
         const f = new FormData(form);
+        btn.textContent = 'Conectando con Tienda Nube…';
         try {
           await api('/admin/applications', {
             method: 'POST',
             body: {
               brand_name: f.get('brand_name'),
-              contact_name: f.get('contact_name'),
               email: f.get('email'),
               phone: f.get('phone') || undefined,
-              instagram: f.get('instagram') || undefined,
               tn_url: f.get('tn_url') || undefined,
-              category: f.get('category'),
-              monthly_orders_estimate: f.get('monthly_orders_estimate') || undefined,
-              why: f.get('why') || undefined,
               website: f.get('website') || undefined
             }
           });
+          // postulación guardada → directo a autorizar la app en SU Tienda Nube.
+          // Al volver (callback → ?instalada=1) la tienda ya queda pendiente de aprobación.
           out.className = 'form-ok';
-          out.textContent = 'Recibimos tu postulación. Si hay lugar en tu categoría, te contactamos.';
-          form.reset();
+          out.textContent = 'Postulación recibida ✓ Te llevamos a Tienda Nube para autorizar la app…';
+          setTimeout(function () { window.location = '/api/tn/install'; }, 600);
+          return;
         } catch (err) {
           out.className = 'form-error';
-          out.textContent = 'No pudimos enviar el formulario. Probá de nuevo en un rato.';
+          out.textContent = 'No pudimos enviar la postulación. Probá de nuevo en un rato.';
         }
         btn.disabled = false;
+        btn.textContent = 'Postular mi Tienda Nube →';
       });
     })();
   </script>
