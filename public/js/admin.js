@@ -122,7 +122,11 @@ async function aplicaciones() {
         actionBtn('Invitar', () => patchApp(a.id, 'invited')),
         actionBtn('Waitlist', () => patchApp(a.id, 'waitlist')),
         actionBtn('Rechazar', () => patchApp(a.id, 'rejected')),
-      ])]),
+        a.status === 'invited' ? actionBtn('📋 Copiar link de instalación', async () => {
+          await navigator.clipboard.writeText('https://antimarket.app/api/tn/install');
+          toast('Link copiado — mandáselo por WhatsApp. Cuando la marca lo abra y autorice, aparece en Tiendas para aprobar.');
+        }) : null,
+      ].filter(Boolean))]),
     ])),
   ));
   if (!data.applications.length) view.replaceChildren(el('p', { class: 'empty', text: 'Sin aplicaciones todavía.' }));
