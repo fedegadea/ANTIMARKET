@@ -165,6 +165,8 @@ async function boot() {
   $('[data-logout]').hidden = false;
   appSection.hidden = false;
   $('[data-store-name]').textContent = overview.store.name;
+  const ugcBtn = $('[data-ugc-wa]');
+  if (ugcBtn) ugcBtn.href = 'https://wa.me/5493456431651?text=' + encodeURIComponent('Hola Anti Market! Somos ' + overview.store.name + ' y queremos activar nuestra Acción UGC incluida (colaboración con creador de contenido por canje).');
 
   document.querySelectorAll('[data-tab]').forEach((btn) => {
     btn.addEventListener('click', () => {
