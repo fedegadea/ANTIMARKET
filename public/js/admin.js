@@ -149,6 +149,7 @@ async function tiendas() {
         el('strong', { text: s.name }),
         el('div', { class: 'muted', text: s.contact_email }),
         el('div', { class: 'muted', text: s.tn_url }),
+        el('div', { class: 'muted', text: '🏷 ' + (s.category || 'sin categoría') }),
       ]),
       el('td', {}, [el('span', { class: 'badge' + (s.status === 'active' ? ' badge--ok' : s.status === 'suspended' ? ' badge--bad' : ''), text: s.status })]),
       el('td', { text: s.branding_approved ? '✓ aprobado' : 'pendiente' }),
@@ -179,8 +180,25 @@ async function tiendas() {
         ? el('textarea', { name, rows: 3, text: value || '' })
         : el('input', { name, value: value || '' }),
     ]);
+    // Categoría de la marca: las conocidas (base + las que ya usan otras
+    // tiendas) o una nueva creada al vuelo.
+    const baseCats = ['moda', 'wellness', 'gourmet', 'deco', 'belleza', 'accesorios'];
+    const cats = [...new Set([...baseCats, ...data.stores.map((x) => x.category), s.category].filter(Boolean))].sort();
+    const catSel = el('select', { name: 'category' });
+    cats.forEach((c) => catSel.appendChild(el('option', { value: c, text: c, ...(c === s.category ? { selected: true } : {}) })));
+    catSel.appendChild(el('option', { value: '__nueva__', text: '➕ Crear nueva categoría…' }));
+    catSel.addEventListener('change', () => {
+      if (catSel.value !== '__nueva__') return;
+      const nombre = (prompt('Nombre de la nueva categoría (ej: gourmet, kids, tech):') || '').trim();
+      if (!nombre) { catSel.value = s.category || 'moda'; return; }
+      const opt = el('option', { value: nombre, text: nombre + ' (nueva)', selected: true });
+      catSel.insertBefore(opt, catSel.lastChild);
+      catSel.value = nombre;
+    });
+
     const form = el('form', { class: 'form-grid' }, [
       field('Nombre', 'name', s.name),
+      el('label', {}, ['Categoría de la marca', catSel]),
       field('Tagline', 'tagline', s.tagline),
       field('Bio', 'bio', s.bio, 'textarea'),
       field('Logo URL', 'logo_url', s.logo_url),
@@ -202,6 +220,7 @@ async function tiendas() {
       try { map = JSON.parse(f.tn_category_map.value || '{}'); } catch { toast('JSON de mapeo inválido'); return; }
       await apiCall('/admin/stores', 'PATCH', {
         id: s.id,
+        category: catSel.value !== '__nueva__' ? catSel.value : (s.category || 'moda'),
         name: f.name.value, tagline: f.tagline.value, bio: f.bio.value,
         logo_url: f.logo_url.value, cover_url: f.cover_url.value,
         brand_color: f.brand_color.value || null,
