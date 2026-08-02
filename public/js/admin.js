@@ -180,6 +180,39 @@ async function tiendas() {
         ? el('textarea', { name, rows: 3, text: value || '' })
         : el('input', { name, value: value || '' }),
     ]);
+
+    // Campo con "Agregar archivo": sube la imagen directo a Supabase Storage
+    // (URL firmada, sin pasar por el server) y deja la URL pública en el input.
+    const uploadField = (label, name, value) => {
+      const txt = el('input', { name, value: value || '', placeholder: 'https://… o subí un archivo acá abajo' });
+      const file = el('input', { type: 'file', accept: 'image/*', style: 'width:auto; font-size: var(--text-sm)' });
+      const prev = el('img', { src: value || '', style: 'max-height:44px;border-radius:6px;border:var(--border);align-self:flex-start;' + (value ? '' : 'display:none;') });
+      file.addEventListener('change', async () => {
+        const fl = file.files[0];
+        if (!fl) return;
+        try {
+          toast('Subiendo imagen…');
+          const s2 = await apiCall('/admin/stores', 'POST', { action: 'sign-upload', filename: fl.name, contentType: fl.type });
+          const up = await fetch(s2.signedUrl, { method: 'PUT', headers: { 'content-type': fl.type }, body: fl });
+          if (!up.ok) throw new Error('HTTP ' + up.status);
+          txt.value = s2.publicUrl;
+          prev.src = s2.publicUrl;
+          prev.style.display = '';
+          toast('Imagen subida ✓ — tocá Guardar para aplicarla');
+        } catch (e2) { toast('No se pudo subir: ' + e2.message); }
+        file.value = '';
+      });
+      return el('label', {}, [label, txt, file, prev]);
+    };
+
+    // Color de marca: selector visual sincronizado con el hex (se puede dejar vacío).
+    const colorTxt = el('input', { name: 'brand_color', value: s.brand_color || '', placeholder: '#000000 · vacío = sin color', style: 'flex:1' });
+    const colorPick = el('input', { type: 'color', value: /^#[0-9a-fA-F]{6}$/.test(s.brand_color || '') ? s.brand_color : '#111111', style: 'width:48px;height:38px;padding:2px;cursor:pointer;border:var(--border);border-radius:6px;background:#fff' });
+    colorPick.addEventListener('input', () => { colorTxt.value = colorPick.value; });
+    colorTxt.addEventListener('input', () => { if (/^#[0-9a-fA-F]{6}$/.test(colorTxt.value)) colorPick.value = colorTxt.value; });
+    const colorField = el('label', {}, ['Color de marca',
+      el('div', { style: 'display:flex;gap:0.5rem;align-items:center' }, [colorPick, colorTxt]),
+    ]);
     // Categoría de la marca: las conocidas (base + las que ya usan otras
     // tiendas) o una nueva creada al vuelo.
     const baseCats = ['moda', 'wellness', 'gourmet', 'deco', 'belleza', 'accesorios'];
@@ -201,9 +234,9 @@ async function tiendas() {
       el('label', {}, ['Categoría de la marca', catSel]),
       field('Tagline', 'tagline', s.tagline),
       field('Bio', 'bio', s.bio, 'textarea'),
-      field('Logo URL', 'logo_url', s.logo_url),
-      field('Cover URL', 'cover_url', s.cover_url),
-      field('Color de marca (#hex)', 'brand_color', s.brand_color),
+      uploadField('Logo de la marca', 'logo_url', s.logo_url),
+      uploadField('Banner (cover)', 'cover_url', s.cover_url),
+      colorField,
       field('Email de contacto', 'contact_email', s.contact_email),
       field('Descuento cupón asesora (%)', 'coupon_discount_pct', s.coupon_discount_pct),
       field('Mapeo categorías TN → interna (JSON)', 'tn_category_map', JSON.stringify(s.tn_category_map || {}), 'textarea'),
